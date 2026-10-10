@@ -35,6 +35,12 @@
       "kind": "certificate",
       "tx": "0xdffdeb2700accebb3eb7df8dbfdaec483afbaeaef037929bb1d62506c70ae64b",
       "note": "ERC-8183 job 56961 submitted with a decomposition certificate (price 0); settles after the dispute window."
+    },
+    {
+      "kind": "agentic",
+      "tx": "0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45",
+      "orderId": "7",
+      "note": "Standing buy placed from the Agentic Wallet (preview then execute), filled by the keeper."
     }
   ]
 }

@@ -1,118 +1,83 @@
 # Developer Experience Report
 
-**Project:** Tare, BNB Hack: Tokenized Stocks Edition. **Author:** 0xkinno.
-Every item below comes from my own calls, with the raw, timestamped entries in [`docs/DX_LOG.md`](docs/DX_LOG.md),
-the data in [`data/discovery`](data/discovery), and the scripts that produced it in [`scripts/discovery`](scripts/discovery).
+**Project:** Tare, for BNB Hack: Tokenized Stocks Edition. **Author:** 0xkinno.
 
-## Summary: three findings that changed what I built
+Everything below comes from calls I made myself. The raw, timestamped notes are in [`docs/DX_LOG.md`](docs/DX_LOG.md), the data is in [`data/discovery`](data/discovery), and the scripts that produced it are in [`scripts/discovery`](scripts/discovery). If a claim here isn't backed by one of those, I haven't made it.
 
-1. **The unit lives in a different place for each issuer, and the API hides that.** bStocks keep it on the token
-   (`uiMultiplier`, ERC-8056), Ondo keeps it in a separate `SyntheticSharesOracle` (`getSValue`), and xStocks rebase
-   the balance and can charge a fee through the multiplier. The public API returns a "multiplier" for all three
-   without saying which mechanism stands behind it, and for xStocks it did not match the token.
-2. **The documented provider list and the served one disagree.** The skill file says one provider is supported.
-   The catalogue serves three provider types on BSC, and the trading documentation says Ondo is always RFQ while
-   the keyed `quote` with a contract as taker returned executable SWAP calldata for Ondo.
-3. **A reference price you can trust is not available for every wrapper.** bStocks have no equity reference in the
-   public per-token response, the Ondo "reference" is the same feed multiplied by the unit, and xStocks prices are
-   pool prints that sit up to twenty percent from the equity.
+## Three things that changed what I built
+
+1. **The unit lives in a different place for each issuer, and the API doesn't tell you.** bStocks keep it on the token (`uiMultiplier`, ERC-8056). Ondo keeps it in a separate `SyntheticSharesOracle` (`getSValue`). xStocks rebase the balance and can take a fee through the multiplier. The public API hands back a "multiplier" for all three without saying which mechanism is behind it, and for xStocks it didn't match the token.
+2. **The docs and the service disagree about who is supported.** The skill file says one provider is supported. The catalogue serves three provider types on BSC. The trading docs say Ondo is always RFQ, yet a keyed `quote` with a contract as taker came back with plain SWAP calldata for Ondo.
+3. **You can't count on a reference price for every wrapper.** bStocks have no equity reference in the public per-token response. The Ondo "reference" is the same feed multiplied by the unit. xStocks prices are pool prints that sat up to twenty percent away from the equity.
 
 ## 1. Onboarding
 
-- **Time to first successful call: 22 minutes, all of it network diagnosis.** From my home network (Nigeria) the
-  RWA endpoints hung until the client timeout with zero bytes and no HTTP status. The TCP connection to the API host
-  never completes, so it looks like an outage, not a geo-refusal. The prohibited-regions page lists countries that
-  are refused; it does not say that unlisted regions may be unreachable at the network level. A VPN fixed it.
-- **The docs index for agents is not fetchable by an agent.** `llms.txt` and `llms-full.txt` answer `202` with an
-  empty body to plain HTTP and `ECONNRESET` to a hosted fetcher, because of a bot challenge. A browser context passes
-  it. I saved both under `docs/vendor/` with `scripts/vendor_docs.mjs`.
-- **Keyed access needs a portal round trip** and the key's capability domains must be chosen at creation. My key had
-  no B402 permission; the first call returned `40104 No permission: B402` and nothing in the key list said so.
-- **Wallet Skills install** worked through `npx skills add`; on Windows one target failed with `EBUSY: unlink` on a
-  symlinked directory while the others completed. The `baw` CLI came from npm (`@binance/agentic-wallet`).
-- **Hosting.** The default Vercel region is a US one that the API refuses; every route that calls it needs
-  `preferredRegion = ['sin1','hkg1']`. Vercel also refused to deploy a Next.js version with a published advisory.
+- **First successful call took 22 minutes, and all of it was working out the network.** From my home connection in Nigeria the RWA endpoints just hung until the client timeout, zero bytes, no HTTP status. The TCP connection to the API host never completes, so it looks like an outage rather than a geo-block. The prohibited-regions page lists countries that get refused. It doesn't mention that other regions may simply never connect. A VPN fixed it.
+- **The docs index meant for agents can't be fetched by an agent.** `llms.txt` and `llms-full.txt` answer `202` with an empty body to plain HTTP, and `ECONNRESET` to a hosted fetcher, because of a bot challenge. A real browser context gets through. I saved both under `docs/vendor/` with `scripts/vendor_docs.mjs`.
+- **Keyed access needs a round trip through the portal**, and the key's capability domains are fixed when you create it. My first key had no B402 permission and the call returned `40104 No permission: B402`. Nothing in the key list hinted at it. Once I made a key with B402 enabled, `supported` answered straight away.
+- **Wallet Skills** installed fine through `npx skills add`. On Windows one target failed with `EBUSY: unlink` on a symlinked directory while the others went through. The `baw` CLI came from npm (`@binance/agentic-wallet`).
+- **Sign-in is easy to miss.** The Agentic Wallet confirmation has to happen inside five minutes while the CLI is already waiting. If the code has expired when you scan it, the app just sits on "confirm in your Agent" and nothing tells you the code is dead.
+- **Hosting.** Vercel's default region is a US one the API refuses, so every route that calls it needs `preferredRegion = ['sin1','hkg1']`. Vercel also refused to deploy a Next.js version with a published advisory.
 
 ## 2. Documentation issues
 
-| Where | Issue |
+| Where | What I ran into |
 |---|---|
-| `binance-tokenized-securities-info` skill, API 1 | States `type=1` is the only supported provider and "omit to return all". The unfiltered list returns three provider types on BSC; `type=2` is xStocks and `type=3` is bStocks, which I established by joining with on-chain symbols. Types 0, 6, 7, 8 and 10 return an empty array. |
-| `trading-api/introduction` | Says Ondo is "always routed via 3-vendor RFQ". Measured with the book contract as taker: LiquidMesh, `executionMode: SWAP`, at every size from $10 to $1,000. |
-| `/quote` parameter table | Does not list the Ondo minimum order. Below five dollars: `40375 Minimum order amount is 5 USD`. |
-| xStocks dividend page | Describes the rebasing multiplier but not the management fee that also moves it, nor any function name. |
+| `binance-tokenized-securities-info` skill, API 1 | Says `type=1` is the only supported provider and to omit it for "all". The unfiltered list returns three provider types on BSC. `type=2` is xStocks and `type=3` is bStocks, which I only worked out by joining the list with on-chain symbols. Types 0, 6, 7, 8 and 10 return an empty array. |
+| `trading-api/introduction` | Says Ondo is "always routed via 3-vendor RFQ". With the book contract as taker I got LiquidMesh with `executionMode: SWAP` at every size from $10 to $1,000. |
+| `/quote` parameter table | Doesn't mention the Ondo minimum order. Under five dollars you get `40375 Minimum order amount is 5 USD`. |
+| xStocks dividend page | Explains the rebasing multiplier but not the management fee that also moves it, and gives no function names. |
 | Chainlink Ondo feed page | Names `SyntheticSharesOracle` and sValue but gives neither the BSC address nor the function signature. The address is on the issuer's own addresses page. |
-| `tokenInfo.volume24h` | Documented as misleading (US equity volume). It is, and the note is helpful; the field should not carry that name. |
-| `referencePrice` | Documented as `tokenPrice / sharesMultiplier`. That is a definition, not a measurement, and the docs should say the reference is derived. |
+| `tokenInfo.volume24h` | Documented as misleading (it's US equity volume). It is, and the warning helps, but the field shouldn't carry that name in the first place. |
+| `referencePrice` | Documented as `tokenPrice / sharesMultiplier`. That's a definition, not a measurement. The docs should say plainly that the reference is derived. |
 
 ## 3. API pitfalls
 
-- **HTTP 200 on failure.** Errors come as `200` with a failure `code` in the body (`40001`, `40374`, `40375`).
-  Status-code-only handling swallows them. My client treats a 200 with a non-success code as a typed degraded state.
-- **`stockInfo.price` is `null` for all ten bStocks** in the dynamic response and the asset status says `TRADING`
-  while the market status says `closed` at the weekend close. The two endpoints disagree about the same moment.
-- **xStocks multiplier mismatch.** The list endpoint says `"1"`, the dynamic endpoint returns another value, and the
-  token's own `getCurrentMultiplier()` returns a third. Five of ten differed by up to 13 bps at my snapshot.
-- **Simulating a contract-taker swap in isolation fails by design.** The built `swap` has `from` = the contract,
-  which holds no USDT, so `pre-transaction/simulate` returns `BEP20: transfer amount exceeds balance`. The correct
-  unit to simulate is the contract's own `fill` call. This is not stated anywhere.
-- **The approve target.** `approveTarget` for the aggregator is a router with no verified source on the explorer.
-  I allowlisted it with an exact approval and the on-chain share floor as the backstop, and recorded the decision.
-- **Log scanning.** `eth_getLogs` on the public dataseed endpoint returns `limit exceeded` for any range; one public
-  endpoint allowed 4,999-block windows and served a 30-day scan (692 windows).
-- **Latency** from the VPN egress, 15 samples each: market status p50 217 ms / p95 879 ms, dynamic p50 222 ms /
-  p95 858 ms, list p50 288 ms / p95 557 ms.
+- **HTTP 200 on failure.** Errors arrive as `200` with a failure `code` in the body (`40001`, `40374`, `40375`). If you only look at the status code you swallow all of them. My client turns a 200 with a non-success code into a typed degraded state.
+- **`stockInfo.price` is `null` for all ten bStocks** in the dynamic response. Separately, at the weekend close the asset status said `TRADING` while the market status said `closed`. Two endpoints, same moment, different answers.
+- **Three different xStocks multipliers.** The list endpoint says `"1"`, the dynamic endpoint returns another value, and the token's own `getCurrentMultiplier()` returns a third. Five of ten differed by up to 13 bps in my snapshot.
+- **A contract-taker swap can't be simulated on its own.** The built `swap` has `from` set to the contract, which holds no USDT, so `pre-transaction/simulate` fails with `BEP20: transfer amount exceeds balance`. What you want to simulate is the contract's own `fill` call. I couldn't find that written anywhere.
+- **The approve target.** For the aggregator, `approveTarget` is a router with no verified source on the explorer. I allowlisted it behind an exact approval and the on-chain share floor, and wrote the decision down in `DECISIONS.md`.
+- **Log scanning.** `eth_getLogs` on the public dataseed endpoint returns `limit exceeded` for any range. One public endpoint took 4,999-block windows and got me through a 30-day scan (692 windows).
+- **B402 settles in a different token.** `supported` reports United Stables, not USDT. A merchant who assumes USDT builds the wrong requirements, and a payer with only USDT has to swap first.
+- **Latency** from the VPN exit, 15 samples each: market status p50 217 ms and p95 879 ms, dynamic p50 222 ms and p95 858 ms, list p50 288 ms and p95 557 ms.
 
 ## 4. AI stack feedback
 
-- The Agentic Wallet skill is precise about confirmation, Developer Mode and the rule that an order id is not a
-  completed swap. The contract-call path (`preview` then `execute`) is what a share-denominated order needs, and it
-  is documented well. Sign-in is the one step an unattended agent cannot do: it requires a QR confirmation in the
-  app within five minutes, and the code expires if a long-running command is started late.
-- The BNB Agent Studio SDK covered ERC-8004 registration and ERC-8183 jobs with little code. Details worth stating
-  up front: mainnet ERC-8183 pays in "United Stables", the dispute window is seven days, zero-price jobs are
-  supported, and ERC-8004 registration on mainnet was gas-sponsored.
-- Feeding `llms-full.txt` to a coding agent worked once the challenge was passed, and the file is a good primer.
+- The Agentic Wallet skill is clear about confirmation, Developer Mode, and the rule that an order id isn't a completed swap. The contract-call route (`preview`, then `execute`) is exactly what a share-denominated order needs, and it's documented well. The one step an agent can't do alone is the sign-in, and the Developer Mode switch, which only exists in the app. I'd like the CLI to say so up front when `devMode` is off.
+- The BNB Agent Studio SDK got me through ERC-8004 registration and ERC-8183 jobs in very little code. A few things worth knowing before you start: mainnet ERC-8183 pays in "United Stables", the dispute window is seven days, zero-price jobs are allowed, and ERC-8004 registration on mainnet was gas-sponsored.
+- Feeding `llms-full.txt` to a coding agent worked well once the challenge was passed. It's a good primer.
 
 ## 5. Tokenized-stock specifics
 
-- **Liquidity is asymmetric.** Median deepest pool: bStocks about 739 thousand dollars, Ondo about 6.5 thousand,
-  xStocks about 390 dollars (`data/discovery/summary.json`). Seven of ten Ondo and all ten xStocks tokens have no
-  pool above ten thousand dollars.
-- **Off-hours behaviour.** Hourly Ondo vs bStocks per-share spread had a median of 13.6 bps over weekend hours and
-  about 7.5 bps in the other sessions. Direct-pool quotes more than five percent from the equity reference were
-  common for Ondo and xStocks and absent for bStocks.
-- **Differences in practice.** bStocks quote tightly and carry a stable, readable unit. Ondo needs the oracle read
-  and a five-dollar minimum, and its corporate actions are scheduled pauses with an oracle log. xStocks show a
-  usable token and an unusable market on BNB Chain.
-- **A decoding trap.** bStocks emit `TransferWithUIAmount` with the same indexed shape as `Transfer`. A shape-based
-  decoder double counts. My verifier did, on real mainnet data; it now filters on the `Transfer` topic.
-- **Corporate actions are visible on-chain.** A 30-day scan of the Ondo oracle found scheduled and applied
-  corporate-action events and 106 value updates.
+- **Liquidity is lopsided.** Median deepest pool: bStocks about 739 thousand dollars, Ondo about 6.5 thousand, xStocks about 390 dollars (`data/discovery/summary.json`). Seven of ten Ondo tokens and all ten xStocks tokens have no pool above ten thousand dollars.
+- **Off-hours behaviour.** The hourly Ondo vs bStocks spread per share had a median of 13.6 bps across weekend hours and about 7.5 bps in the other sessions. Direct-pool quotes more than five percent from the equity reference were common for Ondo and xStocks and absent for bStocks.
+- **Differences in practice.** bStocks quote tightly and carry a unit you can read. Ondo needs the oracle read and has a five dollar minimum, and its corporate actions are scheduled pauses with an oracle log. xStocks have a usable token and an unusable market on BNB Chain.
+- **A decoding trap.** bStocks emit `TransferWithUIAmount` with the same indexed shape as `Transfer`, so a decoder that matches on shape double counts. My own verifier did exactly that on real mainnet data. It now filters on the `Transfer` topic.
+- **Corporate actions are visible on-chain.** A 30-day scan of the Ondo oracle turned up scheduled and applied corporate-action events and 106 value updates.
 
-## 6. Redesign suggestions
+## 6. What I'd change
 
-1. Return, per token, the unit source (address and selector) and its mechanism next to `multiplier`.
-2. Serve the same reference field for every provider, or say plainly that none exists.
-3. Make the provider type an enum in the list response (`ONDO`, `XSTOCKS`, `BSTOCKS`) instead of an integer.
-4. Put route kinds and minimums in the quote parameter table, and return the minimum in the error payload as data.
-5. Return a retryable-or-not flag with every body error code.
-6. Give the contract-taker case a documented simulation path (for example, simulate the caller's transaction, not
-   the swap).
+1. Return the unit source (address and selector) and its mechanism next to `multiplier`, per token.
+2. Serve the same reference field for every provider, or say plainly that there isn't one.
+3. Make the provider type a named value in the list response instead of an integer.
+4. Put route kinds and minimums in the quote parameter table, and return the minimum as data inside the error payload.
+5. Say whether a body error is worth retrying.
+6. Document a way to simulate the contract-taker case, for example "simulate the caller's transaction, not the swap".
 
-## 7. Requested capabilities
+## 7. What I'd ask for
 
-- A unit-change or pause event feed (webhook or log filter) for tokenized equities.
-- Per-token pause state and next scheduled corporate action in the list response.
-- Keyless read-only quotes for agents, rate-limited, for discovery work.
-- Self-serve B402 onboarding and a permission check endpoint that says which domains a key holds.
-- A sandbox for the Agentic Wallet sign-in that does not expire in five minutes.
+- A feed of unit changes and pauses for tokenized equities, either a webhook or a log filter.
+- Per-token pause state and the next scheduled corporate action in the list response.
+- Keyless, rate-limited read-only quotes for agents doing discovery work.
+- Self-serve B402 onboarding, and an endpoint that tells you which domains a key holds.
+- An Agentic Wallet sign-in that doesn't expire in five minutes, or at least says when it has.
 
 ## Reproduce
 
 ```bash
 pnpm install
-pnpm discover          # E1 to E12 data and DISCOVERY.md
-npx tsx scripts/discovery/e6_keyed.ts   # keyed legs, needs BINANCE_WEB3_API_KEY and SECRET
+pnpm discover                                  # E1 to E12 data and DISCOVERY.md
+npx tsx scripts/discovery/e6_keyed.ts          # keyed legs, needs BINANCE_WEB3_API_KEY and SECRET
 npx tsx scripts/discovery/b402_supported.ts
 ```

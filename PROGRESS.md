@@ -21,12 +21,11 @@ Author: 0xkinno.
 - Web deployed (Vercel, Singapore region).
 
 ### Open, and why
-- Agentic Wallet mainnet run: needs the owner's QR confirmation in the Binance app and Developer Mode.
-- B402 paid certificates: the API key has no B402 permission yet (`data/discovery/b402_supported.json`).
+- Paid certificates settle through B402, but the pay-to address from onboarding is the owner wallet, not the keeper.
 - ERC-8183 job settlement: seven day dispute window; state is Submitted.
 - Keeper hosting on a worker: ran locally for the evidence.
 - Supabase tables: apply `services/keeper/schema.sql` in the project SQL editor so the recorder can write.
-- Demo video and `DX_REPORT.md`: the author's.
+- Demo video: the author's.
 
 ### Blockers
 None that stop the build. The items above need an account action by the owner.

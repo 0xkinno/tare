@@ -124,6 +124,7 @@ Real transactions on BNB Smart Chain, cents in size, recorded in [`EVIDENCE.md`]
 | Standing sell, filled above its USDT-per-share floor | [{{ev.sell}}](https://bscscan.com/tx/{{ev.sell}}) |
 | Deliberate refusal: the keeper declined, and a manual fill reverted on-chain with `ShareFloor` | [{{ev.refusal}}](https://bscscan.com/tx/{{ev.refusal}}) |
 | An order placed from the web app and filled by the keeper through the aggregator route | [{{ev.aggregator}}](https://bscscan.com/tx/{{ev.aggregator}}) |
+| An order placed from the Binance Agentic Wallet (`baw` preview, then execute) and filled by the keeper | [{{agentic.placeBuyTx}}](https://bscscan.com/tx/{{agentic.placeBuyTx}}) |
 | A cancel (funds never left the wallet) | [{{ev.cancel}}](https://bscscan.com/tx/{{ev.cancel}}) |
 | Keeper identity (ERC-8004 agent #{{agentId}}) | [{{ev.identity}}](https://bscscan.com/tx/{{ev.identity}}) |
 | Certificate job (ERC-8183 job {{ev.job}}, state {{job.status}}) | [`evidence/mainnet/erc8183_job.json`](evidence/mainnet/erc8183_job.json) |
@@ -231,7 +232,7 @@ Tare minus random: {{counter.tareMinusRandomBps}} bps. Tare minus naive on direc
 | Trading | Aggregated quotes and swap calldata with the book as taker; fills through it were executed on mainnet |
 | Transaction | Simulation before send; the keeper falls back to `eth_call` and records which source it used |
 | Wallet | Holdings in shares |
-| B402 | The paid certificate endpoint (needs a B402-enabled key) |
+| B402 | The paid certificate endpoint; one payment settled on mainnet |
 
 The combination that looks like it should not work but does: **the RWA reference, the on-chain unit factor, a Trading API quote and a simulation, ranked in shares** and enforced by a contract that re-reads the unit.
 
@@ -239,12 +240,12 @@ The combination that looks like it should not work but does: **the RWA reference
 
 | Surface | What is there |
 |---|---|
-| **Agentic Wallet / Wallet Skills** | [`skills/tare/SKILL.md`](skills/tare/SKILL.md): "set a standing order", "sell if it reaches", "what did my orders do". The skill calls `/api/plan`; the wallet previews and signs. Notes in [`docs/spikes/agentic-wallet.md`](docs/spikes/agentic-wallet.md). |
+| **Agentic Wallet / Wallet Skills** | [`skills/tare/SKILL.md`](skills/tare/SKILL.md): "set a standing order", "sell if it reaches", "what did my orders do". The skill calls `/api/plan`; the wallet previews and signs. Mainnet run and findings in [`docs/spikes/agentic-wallet.md`](docs/spikes/agentic-wallet.md). |
 | **MCP** | {{origin}}/api/mcp: `tare_shelf`, `tare_decompose`, `tare_best_route`, `tare_verify_fill`, `tare_session`. Read-only, no URL inputs. |
 | **A2A** | {{origin}}/.well-known/agent-card.json |
 | **ERC-8004 identity** | Keeper registered as agent #{{agentId}} on BSC mainnet |
 | **ERC-8183 commerce** | Job {{ev.job}}: a decomposition certificate, submitted at price zero, settles after the policy dispute window |
-| **x402 / B402** | `/api/certificate` returns `402` with requirements when configured; needs a B402-enabled key |
+| **x402 / B402** | `/api/certificate` returns `402` with requirements; a payment settled on mainnet: [`{{b402tx}}`](https://bscscan.com/tx/{{b402tx}}) |
 
 ## What is real and what is not
 
@@ -256,8 +257,8 @@ The combination that looks like it should not work but does: **the RWA reference
 | Web app, MCP, A2A, judge path | Real, deployed |
 | Fill through the aggregator route with the book as taker | Real, order {{ev.aggregatorOrder}} |
 | Keeper running on a hosted worker | Not yet: ran on the author's machine; a Render blueprint is included |
-| Agentic Wallet mainnet run | Needs the owner's confirmation in the app |
-| Paid certificate settlement | Needs a B402-enabled key |
+| Agentic Wallet mainnet run | Real: order 7 placed through `baw`, filled by the keeper |
+| Paid certificate settlement | Real; pay-to is the owner wallet from onboarding, so the keeper does not earn yet |
 | ERC-8183 completion | Needs the seven day dispute window |
 
 The full list is in [`LIMITATIONS.md`](LIMITATIONS.md).
@@ -325,7 +326,7 @@ docs/         DX log, vendor documentation snapshots, spikes, claims ledger
 
 ## Roadmap
 
-Hosted keeper worker, B402-enabled paid certificates, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
+Hosted keeper worker, keeper-owned B402 pay-to for a self-funding loop, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
 
 ## Security
 

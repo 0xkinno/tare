@@ -12,8 +12,9 @@ export const dynamic = 'force-dynamic';
  * Priced per call with B402 (x402 V2) when the merchant is configured; otherwise the state is stated.
  */
 const ORIGIN = process.env.BINANCE_WEB3_ORIGIN ?? 'https://web3.binance.com';
-const PRICE_WEI = process.env.CERT_PRICE_USDT_WEI ?? '10000000000000000'; // 0.01 USDT, 18 decimals on BSC
-const USDT = '0x55d398326f99059fF775485246999027B3197955';
+// The B402 facilitator on BSC settles in the United Stables token (the `supported` response names it), 18 decimals.
+const PRICE_WEI = process.env.CERT_PRICE_WEI ?? '10000000000000000'; // 0.01
+const PAY_ASSET = '0xcE24439F2D9C6a2289F741120FE202248B666666';
 
 async function b402(op: 'supported' | 'verify' | 'settle', body: unknown): Promise<{ status: number; json: Record<string, unknown> }> {
   const key = process.env.BINANCE_WEB3_API_KEY, secret = process.env.BINANCE_WEB3_SECRET_KEY;
@@ -35,9 +36,9 @@ export async function GET(req: Request) {
   const requirementsFor = async () => {
     const s = await b402('supported', {});
     const kinds = ((s.json.data as { kinds?: { scheme: string; network: string; extra: Record<string, unknown> }[] } | undefined)?.kinds ?? []).filter((k) => k.network === 'eip155:56');
-    const kind = kinds.find((k) => k.scheme === 'exact') ?? kinds[0];
+    const kind = kinds.find((k) => k.scheme === 'exact' && k.extra.assetTransferMethod === 'eip3009') ?? kinds.find((k) => k.scheme === 'exact') ?? kinds[0];
     return kind && payTo
-      ? { scheme: kind.scheme, network: 'eip155:56', amount: PRICE_WEI, asset: USDT, payTo, maxTimeoutSeconds: 300, extra: kind.extra }
+      ? { scheme: kind.scheme, network: 'eip155:56', amount: PRICE_WEI, asset: PAY_ASSET, payTo, maxTimeoutSeconds: 300, extra: kind.extra }
       : null;
   };
 
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
   const canonical = JSON.stringify(body);
   const hash = createHash('sha256').update(canonical).digest('hex');
   const settled = await b402('settle', { x402Version: 2, paymentPayload: payload, paymentRequirements: reqs });
-  if (settled.status !== 200) return NextResponse.json({ error: 'settlement failed', detail: settled.json }, { status: 502 });
+  const settlement = settled.json.data as { success?: boolean; transaction?: string; errorReason?: string } | undefined;
+  if (settled.status !== 200 || settlement?.success !== true) return NextResponse.json({ error: 'settlement failed', detail: settlement ?? settled.json }, { status: 402 });
   return NextResponse.json({ certificate: body, sha256: hash, settlement: settled.json.data ?? null });
 }

@@ -123,7 +123,8 @@ Real transactions on BNB Smart Chain, cents in size, recorded in [`EVIDENCE.md`]
 | Second standing buy, same run | [0x0cce0c2d122133e43ca7e760c08d233449bbc514a480c309ff1f516089384cf7](https://bscscan.com/tx/0x0cce0c2d122133e43ca7e760c08d233449bbc514a480c309ff1f516089384cf7) |
 | Standing sell, filled above its USDT-per-share floor | [0xff0e3df3178c9d2ba38fbd3e78958e182dd70d87a470174a57a01feaaa15e073](https://bscscan.com/tx/0xff0e3df3178c9d2ba38fbd3e78958e182dd70d87a470174a57a01feaaa15e073) |
 | Deliberate refusal: the keeper declined, and a manual fill reverted on-chain with `ShareFloor` | [0x85047053106d890df200de6eba5f82e1064941d8228543234b29287f8b0483a9](https://bscscan.com/tx/0x85047053106d890df200de6eba5f82e1064941d8228543234b29287f8b0483a9) |
-| An order placed from the web app and filled by the keeper through the aggregator route | [0x51e76d9fc1f190e03ed7aa00d28dfb2b155130ba932b757c2f7716d20c322bca](https://bscscan.com/tx/0x51e76d9fc1f190e03ed7aa00d28dfb2b155130ba932b757c2f7716d20c322bca) |
+| An order placed from the web app and filled by the keeper through the aggregator route | [0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d](https://bscscan.com/tx/0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d) |
+| An order placed from the Binance Agentic Wallet (`baw` preview, then execute) and filled by the keeper | [0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45](https://bscscan.com/tx/0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45) |
 | A cancel (funds never left the wallet) | [0x54e1ddb7e97cc38e8016524e8dcbf70bc5402787fee41cacf495da1da4cdf4c0](https://bscscan.com/tx/0x54e1ddb7e97cc38e8016524e8dcbf70bc5402787fee41cacf495da1da4cdf4c0) |
 | Keeper identity (ERC-8004 agent #370049) | [0xbb53249d22b9979389b2694955f2c0aebcca93876672ba60bf9fb84eee7ea9b8](https://bscscan.com/tx/0xbb53249d22b9979389b2694955f2c0aebcca93876672ba60bf9fb84eee7ea9b8) |
 | Certificate job (ERC-8183 job 56961, state SUBMITTED) | [`evidence/mainnet/erc8183_job.json`](evidence/mainnet/erc8183_job.json) |
@@ -231,7 +232,7 @@ Tare minus random: 67.31 bps. Tare minus naive on direct pools: 0 bps. With the 
 | Trading | Aggregated quotes and swap calldata with the book as taker; fills through it were executed on mainnet |
 | Transaction | Simulation before send; the keeper falls back to `eth_call` and records which source it used |
 | Wallet | Holdings in shares |
-| B402 | The paid certificate endpoint (needs a B402-enabled key) |
+| B402 | The paid certificate endpoint; one payment settled on mainnet |
 
 The combination that looks like it should not work but does: **the RWA reference, the on-chain unit factor, a Trading API quote and a simulation, ranked in shares** and enforced by a contract that re-reads the unit.
 
@@ -239,12 +240,12 @@ The combination that looks like it should not work but does: **the RWA reference
 
 | Surface | What is there |
 |---|---|
-| **Agentic Wallet / Wallet Skills** | [`skills/tare/SKILL.md`](skills/tare/SKILL.md): "set a standing order", "sell if it reaches", "what did my orders do". The skill calls `/api/plan`; the wallet previews and signs. Notes in [`docs/spikes/agentic-wallet.md`](docs/spikes/agentic-wallet.md). |
+| **Agentic Wallet / Wallet Skills** | [`skills/tare/SKILL.md`](skills/tare/SKILL.md): "set a standing order", "sell if it reaches", "what did my orders do". The skill calls `/api/plan`; the wallet previews and signs. Mainnet run and findings in [`docs/spikes/agentic-wallet.md`](docs/spikes/agentic-wallet.md). |
 | **MCP** | https://tare-olive.vercel.app/api/mcp: `tare_shelf`, `tare_decompose`, `tare_best_route`, `tare_verify_fill`, `tare_session`. Read-only, no URL inputs. |
 | **A2A** | https://tare-olive.vercel.app/.well-known/agent-card.json |
 | **ERC-8004 identity** | Keeper registered as agent #370049 on BSC mainnet |
 | **ERC-8183 commerce** | Job 56961: a decomposition certificate, submitted at price zero, settles after the policy dispute window |
-| **x402 / B402** | `/api/certificate` returns `402` with requirements when configured; needs a B402-enabled key |
+| **x402 / B402** | `/api/certificate` returns `402` with requirements; a payment settled on mainnet: [`0xf0e44c2ea0bacd7d473292a8ad8d1fd85a544b539442b427ab59e5df7c792020`](https://bscscan.com/tx/0xf0e44c2ea0bacd7d473292a8ad8d1fd85a544b539442b427ab59e5df7c792020) |
 
 ## What is real and what is not
 
@@ -254,10 +255,10 @@ The combination that looks like it should not work but does: **the RWA reference
 | Keeper fills, refusals and cancel on mainnet | Real, cents in size |
 | Verifier PASS on every filled order | Real, outputs in `evidence/mainnet` |
 | Web app, MCP, A2A, judge path | Real, deployed |
-| Fill through the aggregator route with the book as taker | Real, order 5 |
+| Fill through the aggregator route with the book as taker | Real, order 7 |
 | Keeper running on a hosted worker | Not yet: ran on the author's machine; a Render blueprint is included |
-| Agentic Wallet mainnet run | Needs the owner's confirmation in the app |
-| Paid certificate settlement | Needs a B402-enabled key |
+| Agentic Wallet mainnet run | Real: order 7 placed through `baw`, filled by the keeper |
+| Paid certificate settlement | Real; pay-to is the owner wallet from onboarding, so the keeper does not earn yet |
 | ERC-8183 completion | Needs the seven day dispute window |
 
 The full list is in [`LIMITATIONS.md`](LIMITATIONS.md).
@@ -325,7 +326,7 @@ docs/         DX log, vendor documentation snapshots, spikes, claims ledger
 
 ## Roadmap
 
-Hosted keeper worker, B402-enabled paid certificates, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
+Hosted keeper worker, keeper-owned B402 pay-to for a self-funding loop, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
 
 ## Security
 

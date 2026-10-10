@@ -47,3 +47,11 @@ Verifier output per order: `evidence/mainnet/verify_order_0.txt`, `_1`, `_2`. Ow
 `apps/web/e2e/journey.spec.ts` connected the owner test wallet, bought through the web app, placed a standing buy that
 the keeper filled through the aggregator route (order 5, verifier output `evidence/mainnet/verify_order_5.txt`),
 placed a standing sell with an unreachable floor and cancelled it from the Orders page, then read holdings in shares.
+
+## Paid certificate (x402 / B402)
+
+Settlement transaction: [0xf0e44c2ea0bacd7d473292a8ad8d1fd85a544b539442b427ab59e5df7c792020](https://bscscan.com/tx/0xf0e44c2ea0bacd7d473292a8ad8d1fd85a544b539442b427ab59e5df7c792020). Record: `evidence/mainnet/paid_certificate.json`. Payer and pay-to are the owner test wallet (onboarding address).
+
+## Agentic Wallet
+
+Approve [0xdbc1aacbb517cae00028170504e6dcde708c7a6814ff6e642d2e4fe5a5816bc8](https://bscscan.com/tx/0xdbc1aacbb517cae00028170504e6dcde708c7a6814ff6e642d2e4fe5a5816bc8), placeBuy [0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45](https://bscscan.com/tx/0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45), keeper fill [0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d](https://bscscan.com/tx/0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d). Record: `evidence/mainnet/agentic_wallet.json`.

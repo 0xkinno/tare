@@ -28,11 +28,15 @@ const ev = {
   buy0: fillsByOrder['0'] ?? '', buy1: fillsByOrder['1'] ?? '', sell: fillsByOrder['2'] ?? '',
   refusal: rcj.manualFillRevertTx ?? '', cancel: rcj.cancelTx ?? '', refusalOrder: rcj.refusalOrderId ?? '',
   aggregator: aggFill?.txHash ?? '', aggregatorOrder: aggFill?.orderId ?? '',
+  b402tx: String(((J<{ response?: { settlement?: { transaction?: string } } }>('evidence/mainnet/paid_certificate.json'))?.response?.settlement?.transaction) ?? ''),
   identity: String((identity as { txHash?: string }).txHash ?? ''), job: String((job as { jobId?: string }).jobId ?? ''),
 };
 
+const agentic = J<Record<string, string>>('evidence/mainnet/agentic_wallet.json') ?? {};
+
 const ctx: Record<string, unknown> = {
-  ev,
+  agentic,
+  ev, b402tx: ev.b402tx,
   discovery: disc, ...disc, autonomy: auto, counter, agg, job, brokenTotal, brokenObservations: brokenObs,
   forge: { passed: forgeMatch?.[1] ?? '–', failed: forgeMatch?.[2] ?? '–' },
   unitTests: unit?.total ?? '–',

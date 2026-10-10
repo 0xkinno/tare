@@ -9,7 +9,7 @@ Said plainly. Nothing here is hidden in the README.
 5. **The aggregator router is not verified source.** The allowlisted aggregator router has no verified source on the explorer. The exact-amount approval and the share floor bound the damage to a refused fill; the decision is recorded in `DECISIONS.md`.
 6. **Keeper hosting.** The keeper that produced the mainnet evidence ran on the author machine. A hosted worker needs a long-running host account.
 7. **ERC-8183 settlement.** The reference policy has a seven day dispute window, so the certificate job cannot settle before the submission deadline. It is shown as Submitted, not Completed.
-8. **Paid certificates.** The x402 endpoint is implemented. Paid settlement needs an API key with B402 permission and a configured pay-to address; until then it returns a typed unconfigured state.
+8. **Paid certificates.** The x402 endpoint settled a real payment through B402, but the pay-to address fixed at onboarding is the owner test wallet, not the keeper, so the keeper does not earn from it yet. Re-onboarding with the keeper address makes the loop self-funding.
 9. **History.** Unit history of bStocks multipliers beyond the scanned window is not reconstructed; the oracle log scan covers the recent window only.
 10. **Calendar.** NYSE holidays and half days are encoded for 2026 and 2027 and cross-checked against the API session; they are not a trading calendar service.
 11. **Not advice.** Tokenized stocks are certificates or tracker tokens, not shares. Read the issuer terms.

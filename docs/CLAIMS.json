@@ -164,13 +164,14 @@
     },
     {
       "id": "C16",
-      "claim": "Paid certificate calls settle through B402 into the keeper wallet.",
-      "status": "NOT_CLAIMED",
-      "reproduce": "npx tsx scripts/discovery/b402_supported.ts",
+      "claim": "A paid certificate call settled through B402 (x402 V2) on BSC mainnet.",
+      "status": "SUPPORTED",
+      "reproduce": "npx tsx scripts/mainnet/paid_certificate.ts",
       "evidence": [
+        "evidence/mainnet/paid_certificate.json",
         "data/discovery/b402_supported.json"
       ],
-      "limitations": "The API key has no B402 permission yet (code 40104). The endpoint is implemented and returns a typed unconfigured state."
+      "limitations": "The pay-to address fixed at onboarding is the owner test wallet, so the call proves the loop and the settlement, not revenue to the keeper. Price is 0.01 of the facilitator payment token."
     },
     {
       "id": "C17",
@@ -182,6 +183,17 @@
         "evidence/mainnet/verify_order_5.txt"
       ],
       "limitations": "The test signs with the owner test wallet through an injected provider bridge in headless Chromium; mainnet transactions of cents."
+    },
+    {
+      "id": "C18",
+      "claim": "A standing order was placed through the Binance Agentic Wallet on BSC mainnet and filled by the keeper.",
+      "status": "SUPPORTED",
+      "reproduce": "baw contract-call preview/execute with the calls from POST /api/plan",
+      "evidence": [
+        "evidence/mainnet/agentic_wallet.json",
+        "evidence/mainnet/verify_order_7.txt"
+      ],
+      "limitations": "The Agentic Wallet is a separate address from the owner test wallet; cents in size."
     }
   ]
 }
