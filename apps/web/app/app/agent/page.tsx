@@ -19,6 +19,7 @@ interface Keeper {
   lastPassAt?: string | null;
   refusalsByReason?: Record<string, number>;
   lastError?: { at: string; message: string } | null;
+  notifications?: { telegram: { state: 'off' | 'ok' | 'unreachable'; detail: string | null; since: string | null } };
   recorder?: { cycles: number; lastCycleAt: string | null; errors: number };
   selfFunding?: { earnedUsdtWei: string; gasSpentWei: string };
   recent?: { t: string; orderId: string; status: string; decision: string; reasons: string[]; simSource?: string; simResult?: string; txHash?: string }[];
@@ -66,7 +67,12 @@ export default async function AgentPage() {
               ))}
             </ul>
             <p className="mt-3 text-xs text-graphite">Simulation source: {k.transactionApi ?? 'unknown'}. Last pass {k.lastPassAt ?? 'never'}.</p>
-            {k.lastError ? <p className="mt-2 text-xs text-gross">Last error ({k.lastError.at}): {k.lastError.message}</p> : null}
+            {k.lastError && !k.lastError.message.startsWith('telegram:') ? <p className="mt-2 text-xs text-gross">Last error ({k.lastError.at}): {k.lastError.message}</p> : <p className="mt-2 text-xs text-graphite">No keeper errors since start.</p>}
+            {k.notifications ? (
+              <p className="mt-2 text-xs text-graphite">
+                Order diary on Telegram: {k.notifications.telegram.state === 'ok' ? 'delivering' : k.notifications.telegram.state === 'off' ? 'not configured' : `waiting on the network${k.notifications.telegram.detail ? ` (${k.notifications.telegram.detail})` : ''}`}. Fills and refusals are always in the journal above.
+              </p>
+            ) : null}
           </section>
           <section className="mt-6 rounded-[var(--radius-card)] border border-rule bg-paper-3 p-5">
             <h2 className="font-display text-xl font-semibold">Recent decisions</h2>

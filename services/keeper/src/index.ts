@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import dns from 'node:dns';
+import net from 'node:net';
 import { createPublicClient, createWalletClient, http, type Account } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { bsc } from 'viem/chains';
@@ -10,6 +12,10 @@ import { Journal } from './journal';
 import { NoopNotifier, TelegramNotifier, type Notifier } from './notify';
 import { Recorder } from './recorder';
 import { Stats } from './stats';
+
+// Some hosts have no IPv6 egress; try IPv4 first and give each address family a fair attempt window.
+dns.setDefaultResultOrder('ipv4first');
+net.setDefaultAutoSelectFamilyAttemptTimeout?.(2000);
 
 const env = (k: string): string | undefined => (process.env[k] && process.env[k] !== '' ? process.env[k] : undefined);
 const PASS_MS = Number(env('KEEPER_PASS_SEC') ?? 30) * 1000;
@@ -42,6 +48,7 @@ let notifier: Notifier = NoopNotifier;
 let telegram: TelegramNotifier | null = null;
 const tg = env('TELEGRAM_BOT_TOKEN');
 if (tg) {
+  stats.channel('unreachable', 'not contacted yet');
   telegram = new TelegramNotifier(tg, env('PUBLIC_WEB_ORIGIN') ?? 'http://localhost:3000', async (owner) => {
     return (await readOrders()).filter((o) => o.owner.toLowerCase() === owner).map((o) => ({ id: o.id.toString(), side: o.side, status: ['open', 'filled', 'cancelled'][o.status] ?? '?' }));
   });
@@ -60,6 +67,14 @@ async function resolveUnresolved(): Promise<void> {
   }
 }
 
+let passIndex = 0;
+let telegramResumeAt = 0;
+function telegramReason(err: unknown): string {
+  const cause = err instanceof Error ? (err.cause as { code?: string; errors?: { code?: string; address?: string }[] } | undefined) : undefined;
+  const codes = cause?.errors?.map((e) => `${e.code ?? '?'}${e.address ? ` ${e.address}` : ''}`) ?? (cause?.code ? [cause.code] : []);
+  return codes.length ? `network: ${[...new Set(codes)].slice(0, 3).join(', ')}` : err instanceof Error ? err.message : String(err);
+}
+
 async function pass(): Promise<void> {
   try {
     const orders = await readOrders();
@@ -74,7 +89,16 @@ async function pass(): Promise<void> {
       }
     }
     stats.pass();
-    if (telegram) await telegram.pollOnce().catch((err) => stats.error(`telegram: ${String(err)}${err instanceof Error && err.cause ? ` (${String(err.cause)})` : ''}`));
+    if (telegram && passIndex++ >= telegramResumeAt) {
+      try {
+        await telegram.pollOnce();
+        stats.channel('ok');
+      } catch (err) {
+        // Back off for about five minutes; an unreachable channel never counts as a keeper error.
+        telegramResumeAt = passIndex + 10;
+        stats.channel('unreachable', telegramReason(err));
+      }
+    }
   } catch (err) {
     stats.error(err instanceof Error ? err.message : String(err));
   }

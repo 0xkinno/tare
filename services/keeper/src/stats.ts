@@ -8,6 +8,8 @@ export class Stats {
   lastPassAt: number | null = null;
   lastError: { at: string; message: string } | null = null;
   startedAt = Date.now();
+  /** Delivery channel health. A channel that cannot be reached is a status, not a keeper error. */
+  telegram: { state: 'off' | 'ok' | 'unreachable'; detail: string | null; since: string | null } = { state: 'off', detail: null, since: null };
   readonly refusals: Record<RefusalReason, number> = Object.fromEntries(REFUSAL_REASONS.map((r) => [r, 0])) as Record<RefusalReason, number>;
   earnedUsdt = 0n;
   gasSpentWei = 0n;
@@ -26,6 +28,10 @@ export class Stats {
   error(message: string): void {
     this.lastError = { at: new Date().toISOString(), message: message.slice(0, 300) };
   }
+  channel(state: 'off' | 'ok' | 'unreachable', detail: string | null = null): void {
+    if (this.telegram.state !== state) this.telegram = { state, detail, since: new Date().toISOString() };
+    else this.telegram.detail = detail;
+  }
   snapshot() {
     return {
       startedAt: new Date(this.startedAt).toISOString(),
@@ -35,6 +41,7 @@ export class Stats {
       lastPassAt: this.lastPassAt ? new Date(this.lastPassAt).toISOString() : null,
       refusalsByReason: this.refusals,
       lastError: this.lastError,
+      notifications: { telegram: this.telegram },
       selfFunding: { earnedUsdtWei: this.earnedUsdt.toString(), gasSpentWei: this.gasSpentWei.toString() },
     };
   }
