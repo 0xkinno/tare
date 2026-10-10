@@ -59,7 +59,7 @@ export default async function ProofPage() {
 
       <section className="mt-8" aria-labelledby="inv">
         <h2 id="inv" className="font-display text-xl font-semibold">Invariants and where each is checked</h2>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Invariants table">
           <table className="w-full min-w-[560px] text-sm">
             <thead><tr className="text-left font-mono text-xs text-graphite"><th className="py-2">ID</th><th>Invariant</th><th>Checked by</th></tr></thead>
             <tbody>

@@ -17,7 +17,7 @@ export function ShelfTable({ shelf, compact = false }: { shelf: ShelfView; compa
     );
   }
   return (
-    <div className="mt-4 overflow-x-auto">
+    <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label={`Wrappers of ${shelf.ticker} weighed in shares`}>
       <table className="w-full min-w-[520px] border-separate border-spacing-y-1.5 text-sm">
         <thead>
           <tr className="text-left font-mono text-[11px] uppercase tracking-wider text-graphite">
