@@ -81,7 +81,7 @@ These came from wiring five more endpoints into the product. Raw notes are in th
 - **Timestamp errors are a VPN problem too.** Both gas endpoints returned `401` with `Timestamp outside recv_window`. The message includes the server time, which is helpful, but a client that signs, waits three seconds on a VPN and then sends is outside the window. I retry with a fresh timestamp.
 - **Revert data arrives as a string inside a string.** A reverting `gas-limit` call returns `40435` with `{"code":3,"message":"execution reverted: 0x30cd7471"}` as the `msg`. Usable, but it is JSON inside JSON.
 - **Parameter names change between modules.** Balances take `address`, portfolio takes `walletAddress`, top-liquidity takes `tokenContractAddress`. Each failure was a `40001` that named the field, which is good, but a table of the names per endpoint would have saved a round of guessing.
-- **Top-liquidity has no dollar figure for these tokens.** It lists pools and venues, and `liquidityUsd` is null for every NVDAB pool. I show pool counts and venue names and say so.
+- **Top-liquidity has no dollar figure for these tokens.** It lists pools and venues, and `liquidityUsd` is null for many of them, for example every NVDAon pool. I show pool counts and venue names and say so.
 - **Portfolio PnL is per token.** The average buy price is per token, so a cost basis per share needs the unit, which the portfolio API does not have. Zeros come back for tokens the wallet never held, with `isPnlSupported: true`.
 - **Broadcast works for contract calls.** The docs show a swap. A locally signed `approve(…, 0)` went through and mined. That made it safe to let the keeper relay fills through it, with the RPC as the fallback.
 - **x402 from an agent wallet was smooth.** The skill's reference and the CLI agreed, the 402 body went in unedited, and a USDT-only wallet could pay because the Permit2 approve was sponsored. The one thing I had to get right was comparing the replayed `accepted` entry without depending on key order.
@@ -91,7 +91,7 @@ These came from wiring five more endpoints into the product. Raw notes are in th
 ### What I would add to section 6
 
 7. Name the required fields in `40001` for `evmTx` (`value`).
-8. Return a dollar figure in `top-liquidity`, or say it is not available for tokenized equities.
+8. Return a dollar figure in every `top-liquidity` pool, or say when it is not available.
 9. Put the parameter names for every module in one table.
 10. Put a contract-call example next to the swap example for `broadcast-transaction`.
 

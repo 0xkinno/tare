@@ -268,7 +268,7 @@ Read from the chain, the hosted keeper and Supabase when this file was rendered 
 |---|---|---|
 | RWA Data | `stock/detail/list/ai`, `token/dynamic`, `market-status`, `meta` | The Shelf, the ticker page, the session badge, the catalogue |
 | Market | `klines` | The weighing chart and the weekend calibration |
-| Market | `token/top-liquidity` | The Depth column on the ticker page: pool count and venues per wrapper (the endpoint returns `liquidityUsd` as null for these tokens) |
+| Market | `token/top-liquidity` | The Depth column on the ticker page: pool count and venues per wrapper (the endpoint returns `liquidityUsd` for some pools and null for others, so counts and venues are shown) |
 | Trading | `aggregator/quote`, `aggregator/swap` | Keeper routes with the book as taker; fills through it were executed on mainnet |
 | Transaction | `pre-transaction/simulate` | Simulation before every send; `value` is required, and the keeper records which source answered |
 | Transaction | `pre-transaction/gas-limit` | Keeper gas is the larger of the suggested and the simulated limit, times 1.25; both values are logged in the journal and in `keeper_actions` |

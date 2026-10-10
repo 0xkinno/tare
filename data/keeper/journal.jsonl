@@ -2274,3 +2274,10 @@
 {"t":"2026-10-10T21:51:17.889Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":13912}}
 {"t":"2026-10-10T21:51:48.748Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":15993}}
 {"t":"2026-10-10T21:52:18.184Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":10378}}
+{"t":"2026-10-10T21:52:46.877Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":11522}}
+{"t":"2026-10-10T21:53:17.612Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":10739}}
+{"t":"2026-10-10T21:53:52.083Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":20500}}
+{"t":"2026-10-10T21:54:19.465Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":9843}}
+{"t":"2026-10-10T21:54:48.389Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":7227}}
+{"t":"2026-10-10T21:55:19.720Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":18623}}
+{"t":"2026-10-10T21:55:49.960Z","orderId":"3","status":"WAIT","decision":"WAIT","reasons":["PREMIUM_ABOVE_LIMIT"],"latenciesMs":{"decide":8990}}

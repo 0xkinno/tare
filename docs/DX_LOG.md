@@ -112,8 +112,8 @@ Times below are approximate to the minute, reconstructed from file timestamps an
   Tron fields null.
 - 20:15Z. `portfolio/token/latest-pnl` takes `walletAddress`, not `address` as the balance endpoints do. It returns
   an average buy price per token and zeros (with `isPnlSupported: true`) for a token the wallet never held.
-- 20:16Z. `market/token/top-liquidity` returns pools and protocols for NVDAB, but `liquidityUsd` is null for every
-  pool and `protocolName` is null for some.
+- 20:16Z. `market/token/top-liquidity` returns pools and protocols for NVDAB, but `liquidityUsd` is null for many
+  pools (all of NVDAon) and `protocolName` is null for some.
 - 20:18Z. `transaction-detail-by-txhash` returned the keeper fill with `txStatus: success`, gas used and fee; the
   data array is empty until the index catches up, so "not indexed yet" is a state, not an error.
 - 20:20Z. Yahoo Finance chart answered `429` after a handful of calls from one IP; the Nasdaq quote endpoint kept

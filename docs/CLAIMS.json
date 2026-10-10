@@ -248,7 +248,7 @@
       "evidence": [
         "data/discovery/e13_api_depth.json"
       ],
-      "limitations": "top-liquidity returns pools and venues but liquidityUsd is null for these tokens; the portfolio average buy price is per token, so cost basis per share divides by the unit."
+      "limitations": "top-liquidity returns pools and venues but liquidityUsd is null for many pools; the portfolio average buy price is per token, so cost basis per share divides by the unit."
     }
   ]
 }
