@@ -132,7 +132,7 @@ createServer((req, res) => {
   }
   if (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/agent-card.json') {
     const origin = env('PUBLIC_KEEPER_URL') ?? env('RENDER_EXTERNAL_URL') ?? `http://localhost:${PORT}`;
-    const web = env('PUBLIC_WEB_ORIGIN') ?? '';
+    const web = env('PUBLIC_WEB_ORIGIN') ?? 'https://tare-olive.vercel.app';
     res.end(JSON.stringify({
       name: 'Tare Keeper',
       description: 'Untrusted keeper agent for TareBook standing orders. It proposes fills, simulates first, and the contract refuses anything below the signed share floor. It also sells a decomposition certificate over x402.',
