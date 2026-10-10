@@ -1,6 +1,6 @@
 # Proposed standing orders
 
-Status: PROPOSED. Nothing below has been placed. Total at risk if all buys fill: $0.15 of USDT, plus 0.0003 NVDA shares offered for sale.
+Status: order 1 PLACED by the owner on 2026-10-10 (order 9 on the book, approve 0x032111a8...9ac5, placeBuy 0x763a19fe...2970, filled by the keeper within the minute). Orders 2 to 6 are still only proposed. Total at risk if all buys fill: $0.15 of USDT, plus 0.0003 NVDA shares offered for sale.
 Owner wallet: 0x3939...3Ed5. Deadlines are spread from 12 to 23 Oct 2026 (UTC).
 
 | # | Order | Deadline (UTC) | Designed outcome |

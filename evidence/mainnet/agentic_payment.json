@@ -29,8 +29,8 @@
   "amountWei": "10000000000000000",
   "certificateSha256": "a71a162f189de4ebc63f155b05328ee67ef9335d746c70e8d6b762f14d2ceab2",
   "files": [
-    "logs/baw_x402_preview.json",
-    "logs/baw_x402_sign.json",
-    "logs/cert_paid.json"
+    "evidence/mainnet/agentic_payment_preview.json",
+    "evidence/mainnet/agentic_payment_sign.json",
+    "evidence/mainnet/agentic_payment_certificate.json"
   ]
 }

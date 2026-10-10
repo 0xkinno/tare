@@ -170,5 +170,15 @@ describe('engine', () => {
     expect(await g(mk(null, 160000n))).toEqual({ suggested: null, simulated: 160000n, used: 200000n });
     expect((await g(mk(null, null))).used).toBeNull();
   });
+
+  it('every journal append is offered to the mirror, and a throwing mirror never breaks the journal', () => {
+    const seen: string[] = [];
+    const j = new Journal(tmp(), (e) => { seen.push(e.status); });
+    j.append({ t: '1', orderId: '1', status: 'INTENT', decision: 'FILL', reasons: [] });
+    expect(seen).toEqual(['INTENT']);
+    const bad = new Journal(tmp(), () => { throw new Error('supabase down'); });
+    bad.append({ t: '1', orderId: '1', status: 'INTENT', decision: 'FILL', reasons: [] });
+    expect(bad.all()).toHaveLength(1);
+  });
 });
 

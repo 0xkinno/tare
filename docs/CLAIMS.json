@@ -214,7 +214,7 @@
       "reproduce": "curl /api/certificate?ticker=NVDA, baw x402-payment preview then sign --selectedIndex, replay with PAYMENT-SIGNATURE",
       "evidence": [
         "evidence/mainnet/agentic_payment.json",
-        "logs/baw_x402_preview.json"
+        "evidence/mainnet/agentic_payment_preview.json"
       ],
       "limitations": "Pay-to is the owner wallet from B402 onboarding, so the keeper does not earn from it. 0.01 USDT."
     },

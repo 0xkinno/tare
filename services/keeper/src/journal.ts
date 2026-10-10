@@ -51,6 +51,7 @@ export class Journal {
   append(e: JournalEntry): void {
     this.entries.push(e);
     appendFileSync(this.path, `${JSON.stringify(e)}\n`);
+    try { this.onAppend?.(e); } catch { /* a mirror failure never affects the journal */ }
   }
 
   all(): readonly JournalEntry[] {
