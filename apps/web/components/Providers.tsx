@@ -5,7 +5,7 @@ import { RainbowKitProvider, lightTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
-import { config } from '@/lib/wagmi';
+import { getConfig } from '@/lib/wagmi';
 
 const theme = lightTheme({ accentColor: '#16130E', accentColorForeground: '#F4EFE5', borderRadius: 'large', fontStack: 'system' });
 
@@ -28,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
       mo.disconnect();
     };
   }, []);
+  const [config] = useState(getConfig);
   const [qc] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false } } }));
   return (
     <WagmiProvider config={config}>

@@ -28,4 +28,4 @@ const id = String(res.agentId);
 let env = readFileSync('.env.local', 'utf8');
 env = env.replace(/^KEEPER_AGENT_ID=.*$/m, `KEEPER_AGENT_ID=${id}`);
 writeFileSync('.env.local', env);
-writeFileSync('evidence/mainnet/identity.json', JSON.stringify({ standard: 'ERC-8004', chainId: 56, registry: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432', agentId: id, owner: process.env.KEEPER_ADDRESS, txHash: (res as { txHash?: string }).txHash ?? null, endpoints: endpoints.map((e) => e.endpoint), registeredAt: new Date().toISOString() }, null, 2));
+writeFileSync('evidence/mainnet/identity.json', JSON.stringify({ standard: 'ERC-8004', chainId: 56, registry: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432', agentId: id, owner: process.env.KEEPER_ADDRESS, txHash: (res as { transactionHash?: string }).transactionHash ?? null, endpoints: endpoints.map((e) => e.endpoint), registeredAt: new Date().toISOString() }, null, 2));

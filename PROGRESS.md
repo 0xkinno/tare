@@ -2,29 +2,31 @@
 
 Author: 0xkinno.
 
-## Session 1, 2026-10-10 (Phase 0 and Phase 1)
+## Session 2, 2026-10-10
 
 ### Done
-- Repository scaffolding, `.gitignore` (research material and secrets excluded), TASK.md, LICENSE, `package.json`.
-- Phase 0: research material cloned and studied (kept outside the committed tree); developer docs, skill file,
-  issuer docs and on-chain verified sources read; `docs/DX_LOG.md` started.
-- Phase 1 experiments, all scripts under `scripts/discovery`, outputs under `data/discovery`:
-  E1 wrapper map (30 wrappers, API catalog by type), E2 unit factors per issuer at one block,
-  E3 API vs chain vs reference, E8 unit history (30 days), E5 direct-pool depth curves, E7 contract-recipient transfer simulation,
-  E9 latency from the VPN egress, E11 pools by DEX, E12 broken-quote counts, E4 hourly backfill.
-- `DISCOVERY.md` rendered from `data/discovery/summary.json`.
+- Phase 2 mechanism: kernel (property tests), registry (75 wrappers, 51 tickers from evidence plus catalogue), typed
+  Binance client with degraded states, `WrapperRegistry` and `TareBook` (buy and sell), fork break suite and
+  invariant suite, offline verifier CLI.
+- Contracts deployed and verified on BSC mainnet (`EVIDENCE.md`).
+- Phase 3 agent: keeper with intent-before-effect journal, typed refusals, recorder, Telegram notifier, status
+  endpoint; ERC-8004 identity; ERC-8183 certificate job at price zero; x402 certificate endpoint.
+- Mainnet autonomy run: two buys and one sell filled by the keeper while the owner wallet was untouched and New
+  York was closed; a deliberate refusal reverted on-chain with `ShareFloor`; one cancel. Verifier PASS on each fill.
+- Phase 4 product: landing, shelf, ticker with weighing chart and trade panel, standing orders with ledger diary,
+  holdings in shares, keeper page, proof, verify, judge path; MCP server and A2A card; market-clock night edition.
+- Phase 4b additions: sell orders, typed refusals, Telegram, claims ledger, autonomy proof.
+- Phase 5 proof: discovery, counterfactual with random control, calibration, break suite, manifest, claims check.
+- Phase 6 QA: Playwright matrix over nine viewports and nine pages against the deployment; axe; no horizontal scroll.
+- Web deployed (Vercel, Singapore region).
 
-### In progress
-- E4 live recorder (`pnpm discover:record`) is capturing every 60s through the weekend close.
-
-
-### Next
-- Re-run `pnpm discover:render` after the weekend capture; finalise E4 and E12.
-- With an API key: E3 keyed leg, E5 aggregator depth, E6 contract taker, E11 route detail.
-- With Foundry: E7 fork test, then Phase 2.
+### Open, and why
+- Agentic Wallet mainnet run: needs the owner's QR confirmation in the Binance app and Developer Mode.
+- B402 paid certificates: the API key has no B402 permission yet (`data/discovery/b402_supported.json`).
+- ERC-8183 job settlement: seven day dispute window; state is Submitted.
+- Keeper hosting on a worker: ran locally for the evidence.
+- Supabase tables: apply `services/keeper/schema.sql` in the project SQL editor so the recorder can write.
+- Demo video and `DX_REPORT.md`: the author's.
 
 ### Blockers
-- Binance Web3 API key and secret (keyed Trading, Transaction, Wallet endpoints).
-- Owner wallet with Agentic Wallet enabled (E10).
-- Foundry not installed on this machine; archive RPC for fork tests.
-- The home network cannot connect to Binance hosts; a VPN must stay on for every discovery script and the recorder.
+None that stop the build. The items above need an account action by the owner.

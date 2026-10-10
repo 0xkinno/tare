@@ -51,9 +51,11 @@ One ticker, three units, and no trustworthy price.
   {{liquidity.ONDO.medianDeepestPoolUsd}} USD, xStocks {{liquidity.XSTOCKS.medianDeepestPoolUsd}} USD.
   {{liquidity.ONDO.under10k}} of {{liquidity.ONDO.n}} Ondo and {{liquidity.XSTOCKS.under10k}} of
   {{liquidity.XSTOCKS.n}} xStocks tokens have no pool above 10,000 USD.
-- **Ondo names are RFQ-only in the aggregator.** Per the Trading API documentation, Ondo names are
-  always RFQ (owner EIP-712 signature). bStocks have an AMM route (LiquidMesh) and an RFQ route; xStocks are AMM.
-  Measured routing by the keyed endpoint is UNKNOWN until an API key is issued (E6).
+- **The aggregator's documentation and its behaviour disagree for Ondo.** The Trading API documentation says Ondo
+  names are always RFQ (an owner EIP-712 signature a contract cannot give). Measured with the book contract as
+  taker, the keyed `quote` returns LiquidMesh routes with `executionMode` SWAP for bStocks and for Ondo wrappers at
+  every size tested, and a built `swap` whose sender is the book (`data/discovery/e6_contract_taker.json`,
+  `e6_swap_build.json`). xStocks return `Insufficient liquidity` at every size. Ondo has a 5 USD minimum order.
 - **The NYSE is closed {{weekendSharePct}} percent of the week** (hourly bins, holidays not modelled). In those hours
   every equity reference is hours or days old while tokens keep trading.
 
@@ -82,8 +84,7 @@ Every script is re-runnable: `pnpm discover` runs the set, `node scripts/discove
 A price monitor that differences token price and `referencePrice` compares numbers in different units: the unit is
 up to {{units.maxOndoVsBstocksBps}} bps between two tokens of one ticker before any premium exists, and the
 "reference" is the feed multiplied by the same unit for Ondo, absent for bStocks and a pool print for xStocks.
-A guard that lives in the app protects only while the app is open and an owner is awake to sign, because the
-aggregator's Ondo route needs the owner's signature. A vault that acts while the owner sleeps must take the
+A guard that lives in the app protects only while the app is open and an owner is awake to sign. A vault that acts while the owner sleeps must take the
 deposit. No unit is read in the transaction that enforces the limit.
 
 At $50 on the direct on-chain pools, the cheapest-per-token pick and the most-shares pick coincide for
@@ -113,7 +114,7 @@ A limit written in tokens. The unit moves without a transfer: bStocks validate a
 [1e-9, 1e9] (`_validateMultiplier`), Ondo allows large updates behind a scheduled pause, and xStocks rebases
 `balanceOf`. An order "at least 0.2 tokens" signed before a 10 for 1 split or a pause would fill at a share count
 that no longer matches the owner's intent. In shares the same order reverts with `ShareFloor` or `UnitPaused`.
-Unit tests for this live in Phase 2 (`test_unitJump`); until then this item is a design claim, not a result.
+`test_unitJump` writes the bStocks multiplier storage on a fork: the token-denominated baseline fills, the share-denominated order reverts. That result is in `evidence/fork/forge_test_full.txt`.
 
 ## 8. One reproducible demonstration
 
@@ -121,7 +122,7 @@ Unit tests for this live in Phase 2 (`test_unitJump`); until then this item is a
 pnpm install
 pnpm discover          # e1, e2, e3, e5, e7, e9, e11, e12 and the summary
 pnpm discover:render   # regenerates this file
-forge test --match-test test_unitJump   # Phase 2, not yet written
+forge test --match-test test_unitJump   # contracts/test/TareBook.t.sol
 ```
 
 ## Experiments and status
@@ -130,16 +131,16 @@ forge test --match-test test_unitJump   # Phase 2, not yet written
 |---|---|---|
 | E1 | Full BSC wrapper map for the 10 tickers; API catalog has three provider types on BSC (counts: Ondo {{api.bscType1}}, xStocks {{api.bscType2}}, bStocks {{api.bscType3}}) | DONE |
 | E2 | Unit source, selector and value per wrapper; verified source downloaded | DONE |
-| E3 | Reference is not independent (section 2); on-chain unit sources found per issuer. The keyed `rwa/tokens` field `referencePrice` identity is not reproduced here | PARTIAL: keyed leg UNKNOWN |
-| E4 | Hourly backfill: Ondo vs bStocks median absolute per-share spread by session, weekend {{backfill.WEEKEND.medianAbsBps}} bps vs regular {{backfill.REGULAR.medianAbsBps}} bps; live recorder running | PARTIAL: weekend capture in progress |
-| E5 | Direct-pool quotes at four sizes; aggregator quotes UNKNOWN | PARTIAL |
-| E6 | Needs the keyed Trading API with a contract taker | BLOCKED: API key |
-| E7 | `eth_call` transfer to contract recipients, all accepted; Foundry fork test not yet run | PARTIAL |
+| E3 | Reference is not independent (section 2); on-chain unit sources found per issuer for every issuer. The keyed `rwa/tokens` `referencePrice` identity was not reproduced | DONE for the unit sources; identity leg UNKNOWN |
+| E4 | Hourly backfill: Ondo vs bStocks median absolute per-share spread by session, weekend {{backfill.WEEKEND.medianAbsBps}} bps vs regular {{backfill.REGULAR.medianAbsBps}} bps; live recorder ran across the weekend close | DONE for the window recorded |
+| E5 | Direct-pool quotes and aggregator quotes at four sizes | DONE |
+| E6 | Contract taker works for bStocks and Ondo (SWAP via LiquidMesh), not xStocks; calldata built and recorded | DONE |
+| E7 | `eth_call` transfer to contract recipients all accepted; fork suite fills into the book and sells back | DONE |
 | E8 | Unit history, see below | {{historyStatus}} |
-| E9 | Public endpoints reachable from the VPN egress; latency p50 {{latency.p50.dynamicV2}} ms, p95 {{latency.p95.dynamicV2}} ms (dynamic). Home network (NG) cannot connect. US region and Render untested | PARTIAL |
-| E10 | Needs the owner's Binance wallet with Agentic Wallet enabled | BLOCKED: owner wallet |
-| E11 | Pools by DEX per wrapper; route kinds per docs; aggregator route detail UNKNOWN | PARTIAL: API key |
-| E12 | Broken-quote counts by session from {{brokenQuotes.cycles}} recorder cycles (table below) | PARTIAL: weekend capture in progress |
+| E9 | Public endpoints reachable from the VPN egress; latency p50 {{latency.p50.dynamicV2}} ms, p95 {{latency.p95.dynamicV2}} ms (dynamic). The home network (NG) cannot connect; Vercel `sin1` reaches the endpoints. Default US region and Render untested | DONE for the regions tested |
+| E10 | Wallet Skills and `baw` installed, skill written; the sign-in is a QR confirmation in the owner's app | PARTIAL: owner confirmation |
+| E11 | Pools by DEX per wrapper; route kinds measured with a contract taker (AMM and aggregator SWAP; RFQ not returned) | DONE |
+| E12 | Broken-quote counts by session from {{brokenQuotes.cycles}} recorder cycles (table below) | DONE for the window recorded |
 | E13 | Autonomy review of reference builds, kept outside this repository | DONE |
 
 ### E12, quotes more than 5 percent from the equity reference
@@ -158,8 +159,8 @@ promise survive a unit change on-chain, for first-time savers who cannot stay aw
 
 ## Final gate
 
-- [ ] I discovered something non-obvious (written above with evidence): sections 2 and 3, confirmation pending E8 and the keyed legs
+- [x] I discovered something non-obvious (written above with evidence): sections 2 and 3
 - [x] I reproduced it myself (scripts and raw output committed under `scripts/discovery` and `data/discovery`)
-- [ ] The product exists because of that discovery (thesis sentence above), pending owner review
-- [ ] I know exactly how I will break it (break suite list in PROOF.md), Phase 2
-- [ ] I know exactly how I will prove it survived (counterfactual design in PROOF.md), Phase 5
+- [x] The product exists because of that discovery (thesis sentence above)
+- [x] I know exactly how I will break it (break suite in `PROOF.md`, run on a mainnet fork)
+- [x] I know exactly how I will prove it survived (counterfactual and autonomy design in `PROOF.md`)

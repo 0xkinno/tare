@@ -37,7 +37,7 @@ Verifier output per order: `evidence/mainnet/verify_order_0.txt`, `_1`, `_2`. Ow
 | Item | Value |
 |---|---|
 | ERC-8004 agent id | 370049 |
-| Registration tx | [None](https://bscscan.com/tx/None) |
+| Registration tx | [0xbb53249d22b9979389b2694955f2c0aebcca93876672ba60bf9fb84eee7ea9b8](https://bscscan.com/tx/0xbb53249d22b9979389b2694955f2c0aebcca93876672ba60bf9fb84eee7ea9b8) |
 | ERC-8183 job id | 56961 (SUBMITTED) |
 | Job manifest hash | `0x2ded7e54931a907cd88aba40b2f3ee17aa32c4b8be477f632b14c680ec593460` |
 | Allowlist of the aggregator router | [0xc04e7c28...](https://bscscan.com/tx/0xc04e7c280a6766f8114d420c061bc391fec8bbfb76cf86039e5ce777a36c56c3) |

@@ -6,7 +6,7 @@ import { bscscan } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Judge path' };
 
-interface Entry { kind: 'instant' | 'fill' | 'refusal' | 'sell' | 'cancel' | 'agentic' | 'identity' | 'certificate'; tx: string; orderId?: string; note: string; at?: string }
+interface Entry { kind: 'instant' | 'fill' | 'refusal' | 'sell' | 'cancel' | 'agentic' | 'identity' | 'certificate'; tx: string | null; orderId?: string; note: string; at?: string }
 
 const ORDER: Entry['kind'][] = ['fill', 'refusal', 'sell', 'cancel', 'instant', 'agentic', 'identity', 'certificate'];
 const TITLE: Record<Entry['kind'], string> = {
@@ -45,7 +45,8 @@ export default async function JudgePage() {
                   <p className="font-medium">{TITLE[k]}</p>
                   {e ? (
                     <p className="mt-1 text-sm">
-                      {e.note} <a className="font-mono text-xs underline" href={bscscan('tx', e.tx)} target="_blank" rel="noreferrer">{e.tx.slice(0, 14)}…</a>
+                      {e.note}{' '}
+                      {e.tx ? <a className="font-mono text-xs underline" href={bscscan('tx', e.tx)} target="_blank" rel="noreferrer">{e.tx.slice(0, 14)}…</a> : null}
                       {e.orderId ? <> · <Link className="underline" href="/verify">verify order {e.orderId}</Link></> : null}
                     </p>
                   ) : <p className="mt-1 text-sm text-graphite">Not recorded yet. This line fills in when the transaction exists; nothing is shown in its place.</p>}

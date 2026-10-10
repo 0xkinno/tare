@@ -57,7 +57,7 @@ export function WeighingChart({ ticker }: { ticker: string }) {
       {empty ? (
         <p className="rounded-[14px] bg-paper-2 p-4 text-sm">No candle history is available for this ticker yet. The recorder starts a series when it first sees two quotes.</p>
       ) : (
-        <div ref={el} className="w-full" role="img" aria-label={`Weekly price per share for each wrapper of ${ticker}`} />
+        <div ref={el} className="w-full" role="group" aria-label={`Weekly price per share for each wrapper of ${ticker}`} />
       )}
       <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-graphite">
         {series.map((s) => (
