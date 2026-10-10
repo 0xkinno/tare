@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      HAS_RPC: ${{ secrets.BSC_RPC_URL != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,7 +31,7 @@ jobs:
       - name: Contracts build
         run: cd contracts && forge build
       - name: Fork break suite
-        if: ${{ secrets.BSC_RPC_URL != '' }}
+        if: env.HAS_RPC == 'true'
         env:
           BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
         run: cd contracts && forge test -vv
