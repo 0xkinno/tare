@@ -155,4 +155,20 @@ describe('engine', () => {
     const open = await mk(false).process(base, 'NVDA');
     expect(open.kind).toBe('SKIP');
   });
+
+  it('gas for a fill is the larger of the suggested and the simulated limit, times 1.25, and both are reported', async () => {
+    const mk = (suggested: string | null, simulated: bigint | null) => new Engine({
+      chain: { estimateGas: async () => { if (simulated === null) throw new Error('rpc'); return simulated; } } as never,
+      wallet: null, account: { address: owner } as never, book: owner, rwa: offline, signed: {
+        gasLimit: async () => (suggested === null ? { ok: false, degraded: { kind: 'UNREACHABLE', message: 'x' }, latencyMs: 1 } : { ok: true, data: { gasLimit: suggested, raw: {} }, latencyMs: 1 }),
+      } as never,
+      journal: new Journal(tmp()), stats: new Stats(), notifier: NoopNotifier,
+    });
+    const g = (e: Engine) => (e as unknown as { gasFor: (d: `0x${string}`) => Promise<{ suggested: bigint | null; simulated: bigint | null; used: bigint | null }> }).gasFor('0x');
+    expect(await g(mk('200000', 160000n))).toEqual({ suggested: 200000n, simulated: 160000n, used: 250000n });
+    expect(await g(mk('100000', 160000n))).toEqual({ suggested: 100000n, simulated: 160000n, used: 200000n });
+    expect(await g(mk(null, 160000n))).toEqual({ suggested: null, simulated: 160000n, used: 200000n });
+    expect((await g(mk(null, null))).used).toBeNull();
+  });
 });
+
