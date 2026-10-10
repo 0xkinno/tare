@@ -73,8 +73,14 @@ export async function ordersOf(owner: string): Promise<{ deployed: boolean; orde
   let keeper: 'ok' | 'unconfigured' | 'unreachable' = 'unconfigured';
   if (process.env.KEEPER_URL) {
     try {
-      const j = (await (await fetch(`${process.env.KEEPER_URL.replace(/\/$/, '')}/api/agent/keeper`, { signal: AbortSignal.timeout(6000), cache: 'no-store' })).json()) as { recent?: JournalRow[] };
-      journal = j.recent ?? [];
+      const base = process.env.KEEPER_URL.replace(/\/$/, '');
+      const full = await fetch(`${base}/api/agent/journal`, { signal: AbortSignal.timeout(6000), cache: 'no-store' }).then((r) => (r.ok ? (r.json() as Promise<{ rows?: JournalRow[] }>) : null)).catch(() => null);
+      if (full?.rows?.length) {
+        journal = full.rows;
+      } else {
+        const j = (await (await fetch(`${base}/api/agent/keeper`, { signal: AbortSignal.timeout(6000), cache: 'no-store' })).json()) as { recent?: JournalRow[] };
+        journal = j.recent ?? [];
+      }
       keeper = 'ok';
     } catch {
       keeper = 'unreachable';

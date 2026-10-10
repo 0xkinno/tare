@@ -114,6 +114,19 @@ createServer((req, res) => {
     res.end(JSON.stringify({ ...stats.snapshot(), keeper: account?.address ?? null, book: BOOK ?? null, mode: wallet ? 'LIVE' : 'OBSERVE', transactionApi: signed ? 'KEYED' : 'ETH_CALL_FALLBACK', recorder: recorder.snapshot(), recent: journal.all().slice(-25) }));
     return;
   }
+  if (url.pathname === '/api/agent/journal') {
+    // Compact history for the diary: every non-waiting entry, and a waiting entry only when its reason changes.
+    const last = new Map<string, string>();
+    const rows = journal.all().filter((r) => {
+      if (r.status !== 'WAIT' && r.status !== 'SKIP' && r.status !== 'REFUSED') return true;
+      const key = r.reasons.join(',');
+      if (last.get(r.orderId) === key) return false;
+      last.set(r.orderId, key);
+      return true;
+    });
+    res.end(JSON.stringify({ rows: rows.slice(-1500) }));
+    return;
+  }
   if (url.pathname === '/healthz') { res.end('{"ok":true}'); return; }
   res.statusCode = 404;
   res.end('{"error":"not found"}');
