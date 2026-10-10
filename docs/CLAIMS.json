@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "note": "Every public claim lives here. scripts/check_claims.mjs fails CI if README, landing or /judge state a number or claim that is not SUPPORTED in this ledger.",
+  "claims": [
+    {
+      "id": "C1",
+      "claim": "Each of the measured tickers has a bStocks, an Ondo and an xStocks wrapper on BSC with a verified address.",
+      "status": "SUPPORTED",
+      "reproduce": "pnpm discover",
+      "evidence": [
+        "data/discovery/e1_wrapper_map.json"
+      ],
+      "limitations": "Addresses come from a third-party catalogue and are verified on-chain by symbol and decimals; issuer-published lists were not available."
+    },
+    {
+      "id": "C2",
+      "claim": "The three issuers expose the unit differently: a scaled multiplier on the token (bStocks), a separate oracle (Ondo), a rebasing balance (xStocks).",
+      "status": "SUPPORTED",
+      "reproduce": "node scripts/discovery/e2_unit_factors.mjs",
+      "evidence": [
+        "data/discovery/e2_unit_factors.json",
+        "data/discovery/src"
+      ],
+      "limitations": "That one xStocks balance unit equals one share follows issuer documentation and is not confirmed by price because the pools are thin."
+    },
+    {
+      "id": "C3",
+      "claim": "The API reports a different multiplier from the token itself for some xStocks.",
+      "status": "SUPPORTED",
+      "reproduce": "node scripts/discovery/e3_reference_and_units.mjs",
+      "evidence": [
+        "data/discovery/e3_reference_and_units.json"
+      ],
+      "limitations": "Point-in-time snapshot; the count changes as multipliers update."
+    },
+    {
+      "id": "C4",
+      "claim": "bStocks have no equity reference price in the public per-token response.",
+      "status": "SUPPORTED",
+      "reproduce": "node scripts/discovery/e3_reference_and_units.mjs",
+      "evidence": [
+        "data/discovery/e3_reference_and_units.json"
+      ],
+      "limitations": "Public keyless endpoints only; a keyed endpoint may expose more."
+    },
+    {
+      "id": "C5",
+      "claim": "Ondo and xStocks pools on BNB Chain are far thinner than bStocks pools.",
+      "status": "SUPPORTED",
+      "reproduce": "node scripts/discovery/e11_pools.mjs",
+      "evidence": [
+        "data/discovery/e11_pools.json",
+        "data/discovery/summary.json"
+      ],
+      "limitations": "Liquidity as reported by a public pool indexer at snapshot time."
+    },
+    {
+      "id": "C6",
+      "claim": "A contract can receive the tested wrappers.",
+      "status": "PARTIAL",
+      "reproduce": "node scripts/discovery/e7_contract_receive.mjs",
+      "evidence": [
+        "data/discovery/e7_contract_receive.json"
+      ],
+      "limitations": "eth_call simulation from a pool holder; wrappers with no holder are unknown. The fork suite fills into the book for one wrapper."
+    },
+    {
+      "id": "C7",
+      "claim": "TareBook reverts a buy that delivers fewer share-equivalents than the signed floor.",
+      "status": "SUPPORTED",
+      "reproduce": "cd contracts && forge test --match-test test_shareFloorRevert",
+      "evidence": [
+        "evidence/fork/forge_test_full.txt"
+      ],
+      "limitations": "BSC mainnet fork, public RPC, one wrapper family in the fuzz suite."
+    },
+    {
+      "id": "C8",
+      "claim": "TareBook reverts a sale that pays less than the signed USDT per share.",
+      "status": "SUPPORTED",
+      "reproduce": "cd contracts && forge test --match-test test_sellFloorRevert",
+      "evidence": [
+        "evidence/fork/forge_test_full.txt"
+      ],
+      "limitations": "BSC mainnet fork."
+    },
+    {
+      "id": "C9",
+      "claim": "A token-denominated order fills wrong after a unit change; the share-denominated order reverts.",
+      "status": "SUPPORTED",
+      "reproduce": "cd contracts && forge test --match-test test_unitJump",
+      "evidence": [
+        "evidence/fork/forge_test_full.txt"
+      ],
+      "limitations": "Unit change simulated by writing the multiplier storage slot on a fork."
+    },
+    {
+      "id": "C10",
+      "claim": "The keeper filled standing orders (two buys, one sell) on BSC mainnet while the owner wallet sent nothing and New York was closed.",
+      "status": "SUPPORTED",
+      "reproduce": "npx tsx scripts/autonomy.ts",
+      "evidence": [
+        "data/autonomy/summary.json",
+        "data/autonomy/placement.json",
+        "data/keeper/journal.jsonl",
+        "evidence/mainnet/verify_order_0.txt",
+        "evidence/mainnet/verify_order_1.txt",
+        "evidence/mainnet/verify_order_2.txt"
+      ],
+      "limitations": "The keeper ran on the author machine, not a hosted worker. Three fills, cents in size, one ticker, one wrapper (bStocks)."
+    },
+    {
+      "id": "C11",
+      "claim": "On direct pools the share-aware pick equals the cheapest-token pick and beats a random wrapper; with the aggregator, the two picks differ in a minority of cases by a few basis points.",
+      "status": "PARTIAL",
+      "reproduce": "npx tsx scripts/counterfactual.ts && npx tsx scripts/counterfactual_aggregator.ts",
+      "evidence": [
+        "data/counterfactual/summary.json",
+        "data/counterfactual/aggregator_snapshot.json"
+      ],
+      "limitations": "Short recorder window over one weekend; small samples; the pick matters less than the guarantee."
+    },
+    {
+      "id": "C12",
+      "claim": "Some quotes are more than 5 percent from the equity reference, and more often outside the regular session.",
+      "status": "PARTIAL",
+      "reproduce": "node scripts/discovery/e12_broken_quotes.mjs",
+      "evidence": [
+        "data/discovery/e12_broken_quotes.json"
+      ],
+      "limitations": "Direct-pool quotes and public API prices only; recorder window is short."
+    },
+    {
+      "id": "C13",
+      "claim": "The keeper holds an ERC-8004 identity on BSC mainnet.",
+      "status": "SUPPORTED",
+      "reproduce": "node -e \"see evidence/mainnet/identity.json\"",
+      "evidence": [
+        "evidence/mainnet/identity.json"
+      ],
+      "limitations": "Registration only; reputation feedback is empty."
+    },
+    {
+      "id": "C14",
+      "claim": "An ERC-8183 certificate job reached the Submitted state on BSC mainnet at price zero.",
+      "status": "PARTIAL",
+      "reproduce": "npx tsx services/agent/src/job.ts",
+      "evidence": [
+        "evidence/mainnet/erc8183_job.json"
+      ],
+      "limitations": "The policy dispute window is seven days, so settlement cannot complete before the submission deadline. Not claimed as completed."
+    },
+    {
+      "id": "C15",
+      "claim": "The Trading API returns executable swap calldata with a contract as taker for bStocks and for Ondo wrappers; xStocks return no liquidity.",
+      "status": "SUPPORTED",
+      "reproduce": "npx tsx scripts/discovery/e6_keyed.ts",
+      "evidence": [
+        "data/discovery/e6_contract_taker.json",
+        "data/discovery/e6_swap_build.json"
+      ],
+      "limitations": "Ondo quotes enforce a 5 USD minimum order; Ondo calldata was built, not sent. Documentation says Ondo is RFQ only."
+    },
+    {
+      "id": "C16",
+      "claim": "Paid certificate calls settle through B402 into the keeper wallet.",
+      "status": "NOT_CLAIMED",
+      "reproduce": "npx tsx scripts/discovery/b402_supported.ts",
+      "evidence": [
+        "data/discovery/b402_supported.json"
+      ],
+      "limitations": "The API key has no B402 permission yet (code 40104). The endpoint is implemented and returns a typed unconfigured state."
+    }
+  ]
+}

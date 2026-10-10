@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Tare mark">
+  <rect width="96" height="96" rx="24" fill="#16130E"/>
+  <path d="M20 66 H76" stroke="#F4EFE5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M48 66 V30" stroke="#F4EFE5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24 38 H72" stroke="#F4EFE5" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="30" cy="48" r="7" fill="#F04A23"/>
+  <circle cx="66" cy="49" r="9" fill="#00B07A"/>
+  <circle cx="48" cy="26" r="4" fill="#2E5BFF"/>
+</svg>

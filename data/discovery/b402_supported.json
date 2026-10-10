@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-10T03:24:49.994Z",
+  "http": 403,
+  "response": {
+    "code": 40104,
+    "timestamp": 1791602693731,
+    "msg": "No permission: B402",
+    "data": ""
+  }
+}

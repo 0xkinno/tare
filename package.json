@@ -1,0 +1,25 @@
+{
+  "name": "tare",
+  "private": true,
+  "type": "module",
+  "author": "0xkinno",
+  "license": "MIT",
+  "scripts": {
+    "discover": "node scripts/discovery/run_all.mjs",
+    "discover:render": "node scripts/discovery/summary.mjs && node scripts/discovery/render_discovery.mjs",
+    "discover:record": "node scripts/discovery/recorder.mjs",
+    "discover:history": "node scripts/discovery/e8_unit_history.mjs"
+  },
+  "dependencies": {
+    "@tare/binance": "workspace:*",
+    "@tare/kernel": "workspace:*",
+    "@tare/registry": "workspace:*",
+    "@tare/verify": "workspace:*",
+    "viem": "2.21.55"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "playwright": "1.49.1",
+    "tsx": "4.19.2"
+  }
+}

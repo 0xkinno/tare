@@ -1,0 +1,20 @@
+import type { NextConfig } from 'next';
+import path from 'node:path';
+
+const root = path.join(__dirname, '..', '..');
+
+const config: NextConfig = {
+  outputFileTracingRoot: root,
+  outputFileTracingIncludes: { '/**': ['../../data/**/*.json', '../../data/**/*.jsonl', '../../docs/CLAIMS.json', '../../evidence/**/*'] },
+  transpilePackages: ['@tare/kernel', '@tare/registry', '@tare/binance', '@tare/verify'],
+  poweredByHeader: false,
+  reactStrictMode: true,
+  images: { remotePatterns: [{ protocol: 'https', hostname: 'bin.bnbstatic.com' }, { protocol: 'https', hostname: 'images.unsplash.com' }] },
+  webpack: (cfg) => {
+    cfg.resolve.fallback = { ...cfg.resolve.fallback, fs: false, net: false, tls: false };
+    cfg.resolve.extensionAlias = { '.js': ['.ts', '.tsx', '.js'] };
+    return cfg;
+  },
+};
+
+export default config;

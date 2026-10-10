@@ -1,0 +1,16 @@
+{
+  "name": "@tare/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "author": "0xkinno",
+  "license": "MIT",
+  "scripts": { "start": "tsx src/index.ts", "test": "vitest run", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "viem": "2.21.55",
+    "@tare/kernel": "workspace:*",
+    "@tare/registry": "workspace:*",
+    "@tare/binance": "workspace:*"
+  },
+  "devDependencies": { "typescript": "5.6.3", "vitest": "2.1.8", "tsx": "4.19.2", "@types/node": "22.9.0" }
+}
