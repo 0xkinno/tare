@@ -24,7 +24,7 @@ import {
   wadFromDecimal,
   wadToDecimal,
 } from '@tare/kernel';
-import { chain, getShelf } from './shelf';
+import { chain, getShelf, REFERENCE_REQUIRED, type IndependentView } from './shelf';
 
 export const BOOK = (process.env.NEXT_PUBLIC_TAREBOOK || '') as Address | '';
 
@@ -59,9 +59,11 @@ export interface Plan {
   decomposition: null | { grossBps: number; unitBps: number; netBps: number | null; unit: string; usdPerShare: string; referenceUsdPerShare: string | null };
   minShares: string | null;
   session: { session: string; referenceAgeSec: number; referenceNote: string };
+  /** Independent second opinion on the equity reference, with the source that set the floor. */
+  reference: null | { status: IndependentView['verdict']['status']; floorSource: IndependentView['verdict']['floorSource']; independentSource: string | null; independentUsdPerShare: string | null; independentAsOf: string | null; disagreeBps: number | null; maxBps: number };
 }
 
-export type PlanError = { ok: false; code: 'BAD_REQUEST' | 'BOOK_NOT_DEPLOYED' | 'NO_WRAPPER' | 'DEGRADED' | 'NO_REFERENCE'; message: string };
+export type PlanError = { ok: false; code: 'BAD_REQUEST' | 'BOOK_NOT_DEPLOYED' | 'NO_WRAPPER' | 'DEGRADED' | 'NO_REFERENCE' | 'REFERENCE_DISAGREE'; message: string };
 
 const MASK: Record<WrapperRecord['issuer'], number> = { BSTOCKS: 1, ONDO: 2, XSTOCKS: 4 };
 const maskOf = (issuers?: WrapperRecord['issuer'][]) => (issuers && issuers.length ? issuers.reduce((m, i) => m | MASK[i], 0) : 7);
@@ -71,6 +73,18 @@ function validAddr(a: string): a is Address {
   return /^0x[0-9a-fA-F]{40}$/.test(a);
 }
 
+const refOf = (ind: IndependentView): NonNullable<Plan['reference']> => ({
+  status: ind.verdict.status, floorSource: ind.verdict.floorSource, independentSource: ind.source, independentUsdPerShare: ind.usdPerShare,
+  independentAsOf: ind.intraday?.at ?? ind.asOf, disagreeBps: ind.verdict.disagreeBps, maxBps: ind.verdict.maxBps,
+});
+
+/** Fail closed: a disagreeing or (when required) missing second opinion stops the plan before any call is built. */
+function referenceGate(ind: IndependentView, note: string): PlanError | null {
+  if (ind.verdict.status === 'DISAGREE') return { ok: false, code: 'REFERENCE_DISAGREE', message: note };
+  if (ind.verdict.status === 'UNAVAILABLE' && REFERENCE_REQUIRED) return { ok: false, code: 'DEGRADED', message: 'The independent equity reference could not be read, so Tare will not plan an order right now.' };
+  return null;
+}
+
 export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
   if (req.intent === 'cancel') {
     if (!BOOK) return { ok: false, code: 'BOOK_NOT_DEPLOYED', message: 'TareBook is not deployed yet.' };
@@ -78,7 +92,7 @@ export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
     return {
       ok: true, intent: 'cancel', why: ['Cancelling releases nothing because nothing was ever held: your funds stayed in your wallet.'],
       calls: [{ label: 'Cancel order', to: BOOK, value: '0', data: encodeFunctionData({ abi: bookAbi, functionName: 'cancel', args: [BigInt(req.orderId)] }), decoded: `TareBook.cancel(${req.orderId})` }],
-      wrapper: null, decomposition: null, minShares: null, session: { session: 'n/a', referenceAgeSec: 0, referenceNote: '' },
+      wrapper: null, decomposition: null, minShares: null, session: { session: 'n/a', referenceAgeSec: 0, referenceNote: '' }, reference: null,
     };
   }
   if (!validAddr(req.owner)) return { ok: false, code: 'BAD_REQUEST', message: 'owner must be an address' };
@@ -96,6 +110,8 @@ export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
     }
     const shelf = await getShelf(ticker);
     if (!shelf) return { ok: false, code: 'NO_WRAPPER', message: 'no shelf' };
+    const gateSell = referenceGate(shelf.independent, shelf.referenceNote);
+    if (gateSell) return gateSell;
     const mask = maskOf(req.issuers);
     const candidates = shelf.wrappers.filter((w) => w.unitWad && (mask & MASK[w.issuer]) !== 0 && w.contractReceive !== 'REFUSED');
     const pick = candidates.sort((a, b) => b.registryIndex - a.registryIndex)[0] ?? candidates[0];
@@ -116,6 +132,7 @@ export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
       wrapper: { symbol: pick.symbol, issuer: pick.issuer, token: pick.token, registryIndex: pick.registryIndex },
       decomposition: null, minShares: null,
       session: { session: shelf.session.session, referenceAgeSec: shelf.session.referenceAgeSec, referenceNote: shelf.referenceNote },
+      reference: refOf(shelf.independent),
     };
   }
 
@@ -130,6 +147,8 @@ export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
   const shelf = await getShelf(ticker, Number(wadToDecimal(usdWad, 2)) || 50);
   if (!shelf) return { ok: false, code: 'NO_WRAPPER', message: 'no shelf' };
   if (shelf.degraded && shelf.wrappers.every((w) => !w.quote)) return { ok: false, code: 'DEGRADED', message: `Data source degraded: ${shelf.degraded.kind}` };
+  const gateBuy = referenceGate(shelf.independent, shelf.referenceNote);
+  if (gateBuy) return gateBuy;
 
   const mask = maskOf(req.issuers);
   const eligible = shelf.wrappers.filter((w) => w.quote && !w.quote.brokenQuote && w.unitPaused === false && (mask & MASK[w.issuer]) !== 0);
@@ -188,6 +207,7 @@ export async function buildPlan(req: PlanRequest): Promise<Plan | PlanError> {
     } : null,
     minShares: minShares.toString(),
     session: { session: shelf.session.session, referenceAgeSec: shelf.session.referenceAgeSec, referenceNote: shelf.referenceNote },
+    reference: refOf(shelf.independent),
   };
 }
 

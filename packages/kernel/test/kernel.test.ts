@@ -206,3 +206,31 @@ describe('policy', () => {
     expect(effectiveUsdPerShare(usd(wadFromDecimal('50')), tokens(wadFromDecimal('0.2')), sharesPerToken(WAD))).toBe(wadFromDecimal('250'));
   });
 });
+
+describe('reference second opinion (fail closed)', () => {
+  const ref = (n: string) => usdPerShare(wadFromDecimal(n));
+  const q: WrapperQuote = {
+    wrapperIdx: 0, issuer: 'BSTOCKS', token: '0x0000000000000000000000000000000000000001', side: 'BUY',
+    usd: usd(wadFromDecimal('50')), tokens: tokens(wadFromDecimal('0.2168')), unit: sharesPerToken(wadFromDecimal('1.000778')),
+    paused: false, route: 'AMM', referenceUsdPerShare: ref('230'), simulated: 'PASS',
+  };
+  const buy = { side: 'BUY' as const, maxNetPremium: wadFromDecimal('0.05'), minShares: shares(0n) };
+  const open = readSession(NOW_TUE, null);
+
+  it('refuses with REFERENCE_DISAGREE when the two references differ by more than the limit', () => {
+    const d = decide([q], buy, open, false, { issuerReference: ref('240'), independentReference: ref('229'), maxDisagreeBps: 200, required: true });
+    expect(d.kind).toBe('WAIT');
+    if (d.kind === 'WAIT') expect(d.reasons).toEqual(['REFERENCE_DISAGREE']);
+  });
+  it('fills when they agree', () => {
+    const d = decide([q], buy, open, false, { issuerReference: ref('230'), independentReference: ref('229'), maxDisagreeBps: 200, required: true });
+    expect(d.kind).toBe('FILL');
+  });
+  it('fails closed when the independent source is missing and required, proceeds when it is optional', () => {
+    const closed = decide([q], buy, open, false, { issuerReference: ref('230'), independentReference: null, maxDisagreeBps: 200, required: true });
+    expect(closed.kind).toBe('WAIT');
+    if (closed.kind === 'WAIT') expect(closed.reasons).toEqual(['API_DEGRADED']);
+    const loose = decide([q], buy, open, false, { issuerReference: ref('230'), independentReference: null, maxDisagreeBps: 200, required: false });
+    expect(loose.kind).toBe('FILL');
+  });
+});

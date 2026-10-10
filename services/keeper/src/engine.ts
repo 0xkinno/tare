@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { encodeFunctionData, type PublicClient, type WalletClient, type Account } from 'viem';
+import { encodeFunctionData, keccak256, type PublicClient, type WalletClient, type Account } from 'viem';
 import {
   WAD,
   decide,
@@ -19,6 +19,7 @@ import {
 } from '@tare/kernel';
 import { USDT, readUnit, registryIndex, wrappersFor, type WrapperRecord } from '@tare/registry';
 import type { PublicRwaClient, SignedClient } from '@tare/binance';
+import { independentReference, disagreementBps, DEFAULT_MAX_DISAGREE_BPS, type ReferenceResult } from '@tare/reference';
 import { bookAbi } from './abi';
 import { aggregatorRoutes } from './aggregator';
 import { directRoutes, type DirectRoute } from '@tare/registry';
@@ -52,6 +53,16 @@ export interface EngineDeps {
   now?: () => number;
   /** Test seam: override route discovery. */
   routes?: typeof directRoutes;
+  /** Independent equity reference (second opinion). Defaults to the public Yahoo chart then Nasdaq quote. */
+  independent?: (ticker: string) => Promise<ReferenceResult>;
+  /** Test seam: override the issuer-feed reference. */
+  issuerReference?: (ticker: string) => Promise<ReturnType<typeof usdPerShare> | null>;
+  /** Largest tolerated gap between the issuer feed and the independent source, bps. */
+  referenceMaxBps?: number;
+  /** Fail closed when the independent source is unavailable (default true). */
+  referenceRequired?: boolean;
+  /** Relay fills through the Transaction API broadcast endpoint (RPC remains the fallback). */
+  broadcast?: boolean;
 }
 
 const TOLERANCE_DEFAULT = wadFromDecimal('0.05');
@@ -95,7 +106,22 @@ export class Engine {
       marketStatus: market.data.marketStatus, openState: market.data.openState, reasonCode: market.data.reasonCode, reasonMsg: market.data.reasonMsg, nextOpenTime: market.data.nextOpenTime,
     } : null);
 
-    const reference = await this.referencePrice(tickerSymbol);
+    const issuerRef = this.d.issuerReference ? await this.d.issuerReference(tickerSymbol) : await this.referencePrice(tickerSymbol);
+    const indep = await (this.d.independent ?? independentReference)(tickerSymbol);
+    const independentWad = indep.ok ? usdPerShare(indep.usdPerShare) : null;
+    // bStocks have no API reference: when the issuer feed is absent the independent source is the reference.
+    const reference = issuerRef ?? independentWad;
+    const check = {
+      issuerReference: issuerRef, independentReference: independentWad,
+      maxDisagreeBps: this.d.referenceMaxBps ?? DEFAULT_MAX_DISAGREE_BPS, required: this.d.referenceRequired ?? true,
+    };
+    const refBps = issuerRef !== null && independentWad !== null ? disagreementBps(issuerRef, independentWad) : null;
+    this.d.stats.referenceCheck(refBps === null ? (independentWad === null ? 'unavailable' : 'single') : refBps > check.maxDisagreeBps ? 'disagree' : 'agree');
+    const refInfo = {
+      referenceSource: indep.ok ? indep.source : 'UNAVAILABLE',
+      referenceIndependentWad: independentWad?.toString(), referenceIssuerWad: issuerRef?.toString(),
+      referenceDisagreeBps: refBps ?? undefined,
+    };
     const side = o.side;
     const intent: Intent = side === 'BUY'
       ? { side: 'BUY', maxNetPremium: TOLERANCE_DEFAULT, minShares: shares(o.limit) }
@@ -138,7 +164,7 @@ export class Engine {
       });
     }
 
-    const decision: Decision = decide(quotes, intent, session, degraded && wrappers.length > 0 && quotes.every((q) => q.unit === null));
+    const decision: Decision = decide(quotes, intent, session, degraded && wrappers.length > 0 && quotes.every((q) => q.unit === null), check);
     const latencies = { decide: Date.now() - t0 };
 
     if (decision.kind !== 'FILL') {
@@ -146,7 +172,7 @@ export class Engine {
       const key = `${decision.kind}:${decision.reasons.join(',')}`;
       if (this.lastWait.get(orderId) !== key) {
         this.lastWait.set(orderId, key);
-        this.d.journal.append({ t: ts, orderId, status: decision.kind, decision: decision.kind, reasons: decision.reasons, latenciesMs: latencies });
+        this.d.journal.append({ t: ts, orderId, status: decision.kind, decision: decision.kind, reasons: decision.reasons, latenciesMs: latencies, ...refInfo });
         await this.d.notifier.refusal(o.owner, orderId, decision.reasons);
       }
       return { kind: decision.kind, reasons: decision.reasons, detail: decision.detail };
@@ -163,7 +189,7 @@ export class Engine {
     const data = encodeFunctionData({ abi: bookAbi, functionName: 'fill', args: [o.id, BigInt(decision.wrapperIdx), route.router, route.data] });
     const base: JournalEntry = {
       t: ts, orderId, status: 'INTENT', decision: 'FILL', reasons: decision.reasons, wrapper: w.token, router: route.router, venue: route.venue,
-      calldataHash: hash(data), sharesWad: decision.shares.toString(), latenciesMs: latencies,
+      calldataHash: hash(data), sharesWad: decision.shares.toString(), latenciesMs: latencies, ...refInfo,
     };
 
     // T9: simulate before send. Intent is persisted first.
@@ -177,9 +203,11 @@ export class Engine {
     }
 
     const t1 = Date.now();
-    const txHash = await this.d.wallet.sendTransaction({ account: this.d.account, chain: this.d.wallet.chain ?? null, to: this.d.book, data });
-    this.d.journal.append({ ...base, t: new Date(this.now()).toISOString(), status: 'SENT', txHash, simSource: sim.source, simResult: 'PASS' });
-    return this.observe(o, txHash, { ...base, simSource: sim.source, simResult: 'PASS' }, Date.now() - t1);
+    const gas = await this.gasFor(data);
+    const { txHash, via } = await this.send(data, gas.used);
+    const gasInfo = { gasSuggested: gas.suggested?.toString(), gasSimulated: gas.simulated?.toString(), gasLimitUsed: gas.used?.toString(), broadcastVia: via };
+    this.d.journal.append({ ...base, ...gasInfo, t: new Date(this.now()).toISOString(), status: 'SENT', txHash, simSource: sim.source, simResult: 'PASS' });
+    return this.observe(o, txHash, { ...base, ...gasInfo, simSource: sim.source, simResult: 'PASS' }, Date.now() - t1);
   }
 
   /** Waits for a hash to resolve. Used after sending and on restart for unresolved hashes. */
@@ -195,6 +223,46 @@ export class Engine {
     this.d.stats.refusal('SIM_FAILED');
     this.d.journal.append({ ...base, t: ts, status: 'REVERTED', txHash, gasUsed: receipt.gasUsed.toString() });
     return { kind: 'REVERTED', txHash, reason: 'transaction reverted on-chain' };
+  }
+
+  /**
+   * Gas for a fill: max(suggested by the Transaction API gas-limit endpoint, simulated by the node) x 1.25.
+   * Both inputs are returned so the journal can log them; either may be null when its source is down.
+   */
+  private async gasFor(data: `0x${string}`): Promise<{ suggested: bigint | null; simulated: bigint | null; used: bigint | null }> {
+    let suggested: bigint | null = null;
+    let simulated: bigint | null = null;
+    if (this.d.signed && this.d.account) {
+      const r = await this.d.signed.gasLimit({ from: this.d.account.address, to: this.d.book, data }).catch(() => null);
+      if (r && r.ok) suggested = BigInt(r.data.gasLimit);
+    }
+    if (this.d.account) {
+      simulated = await this.d.chain.estimateGas({ account: this.d.account.address, to: this.d.book, data }).catch(() => null);
+    }
+    const base = [suggested, simulated].reduce<bigint>((m, v) => (v !== null && v > m ? v : m), 0n);
+    return { suggested, simulated, used: base === 0n ? null : (base * 125n) / 100n };
+  }
+
+  /** Sign locally, then relay through the Transaction API broadcast endpoint; fall back to the RPC when it refuses. */
+  private async send(data: `0x${string}`, gas: bigint | null): Promise<{ txHash: `0x${string}`; via: 'TRANSACTION_API' | 'RPC' }> {
+    const wallet = this.d.wallet!;
+    const account = this.d.account!;
+    if (!this.d.signed || !this.d.broadcast) {
+      const txHash = await wallet.sendTransaction({ account, chain: wallet.chain ?? null, to: this.d.book, data, ...(gas ? { gas } : {}) });
+      return { txHash, via: 'RPC' };
+    }
+    const req = await wallet.prepareTransactionRequest({ account, chain: wallet.chain ?? null, to: this.d.book, data, ...(gas ? { gas } : {}) } as never);
+    const raw = await wallet.signTransaction({ ...(req as object), account } as never);
+    const txHash = keccak256(raw);
+    const b = await this.d.signed.broadcast(account.address, raw).catch(() => null);
+    if (b && b.ok) return { txHash: (b.data.txHash as `0x${string}`) ?? txHash, via: 'TRANSACTION_API' };
+    try {
+      await wallet.sendRawTransaction({ serializedTransaction: raw });
+    } catch (e) {
+      // "already known" means the API did relay it after all.
+      if (!/already known|known transaction|nonce too low/i.test(e instanceof Error ? e.message : String(e))) throw e;
+    }
+    return { txHash, via: 'RPC' };
   }
 
   private emptyQuote(w: WrapperRecord, idx: number, side: 'BUY' | 'SELL', unit: WrapperQuote['unit'], paused: boolean | null, reference: ReturnType<typeof usdPerShare> | null): WrapperQuote {

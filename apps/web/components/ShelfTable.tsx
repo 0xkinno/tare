@@ -26,6 +26,7 @@ export function ShelfTable({ shelf, compact = false }: { shelf: ShelfView; compa
             {!compact && <th className="px-3 font-normal">Token price</th>}
             <th className="px-3 font-normal">$ / share</th>
             <th className="px-3 font-normal">Net</th>
+            {!compact && <th className="px-3 font-normal">Depth</th>}
             <th className="px-3 font-normal">Shares for ${shelf.quoteUsd}</th>
           </tr>
         </thead>
@@ -59,6 +60,44 @@ export function ShelfTable({ shelf, compact = false }: { shelf: ShelfView; compa
         </tbody>
       </table>
       <p className="mt-2 text-xs text-graphite">{shelf.referenceNote}</p>
+      {!compact && <ReferencePanel shelf={shelf} />}
     </div>
+  );
+}
+
+const SRC_NAME: Record<string, string> = { YAHOO_CHART: 'Yahoo Finance chart', NASDAQ_QUOTE: 'Nasdaq quote' };
+const FLOOR_WORDS: Record<string, string> = {
+  ISSUER_FEED: 'the Ondo equity feed, cross-checked by the independent source',
+  INDEPENDENT: 'the independent source alone (this ticker has no issuer reference)',
+  NONE: 'nothing: the planner and the keeper refuse',
+};
+
+/** Where every equity reference came from, with source and timestamp, and which one sets the floor. */
+function ReferencePanel({ shelf }: { shelf: ShelfView }) {
+  const i = shelf.independent;
+  const tone = i.verdict.status === 'AGREE' || i.verdict.status === 'SINGLE_SOURCE' ? 'text-net' : 'text-gross';
+  return (
+    <section className="mt-4 rounded-[14px] border border-rule p-4" aria-label="Independent equity reference">
+      <h3 className="font-display text-sm font-semibold">Equity reference, two sources</h3>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+        <dt className="text-graphite">Issuer feed</dt>
+        <dd className="num">{shelf.issuerReferenceUsdPerShare ? `$${dec(shelf.issuerReferenceUsdPerShare, 2)} · Ondo equity feed (Binance API stockInfo.price)` : 'none for this ticker (bStocks and xStocks expose no equity reference)'}</dd>
+        <dt className="text-graphite">Independent</dt>
+        <dd className="num">
+          {i.ok && i.usdPerShare
+            ? <>${dec(i.usdPerShare, 2)} · {SRC_NAME[i.source ?? ''] ?? i.source} · {i.intraday ? `last print ${i.intraday.at}` : `as of ${i.asOf}`}{i.daily ? ` · daily close $${Number(i.daily.close).toFixed(2)} on ${i.daily.date}` : ''}</>
+            : <>unavailable: {i.failure}</>}
+        </dd>
+        <dt className="text-graphite">Verdict</dt>
+        <dd className={tone}>
+          {i.verdict.status === 'AGREE' && `agree within ${i.verdict.maxBps} bps (${i.verdict.disagreeBps} bps apart)`}
+          {i.verdict.status === 'DISAGREE' && `disagree by ${i.verdict.disagreeBps} bps (limit ${i.verdict.maxBps}): REFERENCE_DISAGREE`}
+          {i.verdict.status === 'SINGLE_SOURCE' && 'one source only'}
+          {i.verdict.status === 'UNAVAILABLE' && 'cannot be confirmed: fails closed'}
+        </dd>
+        <dt className="text-graphite">Sets the floor</dt>
+        <dd>{FLOOR_WORDS[i.verdict.floorSource]}</dd>
+      </dl>
+    </section>
   );
 }

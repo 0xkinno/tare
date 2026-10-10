@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { bscscan, dec } from '@/lib/format';
 
-interface Row { ticker: string; symbol: string; issuer: string; token: string; tokensWad: string; unitWad: string | null; sharesWad: string | null; paused: boolean | null; error: string | null }
+interface Pnl { costBasisUsdPerShare: string | null; costUsd: string | null; valueUsd: string | null; unrealizedUsd: string | null; unrealizedPct: string | null; realizedUsd: string | null; holdingSeconds: number | null }
+interface Row { ticker: string; symbol: string; issuer: string; token: string; tokensWad: string; unitWad: string | null; sharesWad: string | null; paused: boolean | null; error: string | null; pnl: Pnl | null }
 interface Payload { rows: Row[]; byTicker: Record<string, { sharesWad: string; wrappers: number }>; scanned: number }
 
 export function HoldingsClient() {
@@ -40,6 +41,14 @@ export function HoldingsClient() {
                 <span className="num">{dec(r.tokensWad, 6)} tokens</span>
                 <span className="text-graphite">unit {r.unitWad ? dec(r.unitWad, 6) : 'unread'}</span>
                 <span className="num ml-auto font-medium">{r.sharesWad ? `${dec(r.sharesWad, 4)} shares` : <span className="text-gross">{r.error ?? 'unreadable'}</span>}</span>
+                {r.pnl && r.pnl.costBasisUsdPerShare && (
+                  <p className="w-full text-xs text-graphite">
+                    Cost basis <span className="num">${r.pnl.costBasisUsdPerShare}</span> per share
+                    {r.pnl.unrealizedUsd !== null && <> · unrealized <span className={`num ${Number(r.pnl.unrealizedUsd) >= 0 ? 'text-net' : 'text-gross'}`}>{Number(r.pnl.unrealizedUsd) >= 0 ? '+' : ''}${Number(r.pnl.unrealizedUsd).toFixed(4)}{r.pnl.unrealizedPct !== null ? ` (${r.pnl.unrealizedPct}%)` : ''}</span></>}
+                    {r.pnl.realizedUsd !== null && <> · realized <span className="num">${Number(r.pnl.realizedUsd).toFixed(4)}</span></>}
+                    {' '}· from the Address Portfolio API
+                  </p>
+                )}
               </li>
             ))}
           </ul>

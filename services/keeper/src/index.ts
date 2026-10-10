@@ -9,6 +9,7 @@ import { TICKERS, tickerIdOf } from '@tare/registry';
 import { bookAbi } from './abi';
 import { Engine, type OpenOrder } from './engine';
 import { Journal } from './journal';
+import { SupabaseMirror } from './mirror';
 import { NoopNotifier, TelegramNotifier, type Notifier } from './notify';
 import { Recorder } from './recorder';
 import { Stats } from './stats';
@@ -29,7 +30,8 @@ const secret = env('BINANCE_WEB3_SECRET_KEY');
 const signed = apiKey && secret ? new SignedClient({ apiKey, secretKey: secret, origin: env('BINANCE_WEB3_ORIGIN') }) : null;
 const account: Account | null = env('KEEPER_PRIVATE_KEY') ? privateKeyToAccount(env('KEEPER_PRIVATE_KEY') as `0x${string}`) : null;
 const wallet = account ? createWalletClient({ account, chain: bsc, transport: http(env('BSC_RPC_URL') ?? 'https://bsc-dataseed1.defibit.io') }) : null;
-const journal = new Journal(env('KEEPER_JOURNAL') ?? 'data/keeper/journal.jsonl');
+const mirror = env('SUPABASE_URL') && env('SUPABASE_SERVICE_ROLE_KEY') ? new SupabaseMirror(env('SUPABASE_URL')!, env('SUPABASE_SERVICE_ROLE_KEY')!) : null;
+const journal = new Journal(env('KEEPER_JOURNAL') ?? 'data/keeper/journal.jsonl', mirror ? (e) => mirror.push(e) : undefined);
 const stats = new Stats();
 const tickerById = new Map(TICKERS.map((t) => [tickerIdOf(t).toLowerCase(), t]));
 
@@ -55,7 +57,8 @@ if (tg) {
   notifier = telegram;
 }
 
-const engine = new Engine({ chain, wallet, account, book: (BOOK ?? '0x0000000000000000000000000000000000000000') as `0x${string}`, rwa, signed, registry: env('NEXT_PUBLIC_REGISTRY') as `0x${string}` | undefined, journal, notifier, stats });
+const engine = new Engine({ chain, wallet, account, book: (BOOK ?? '0x0000000000000000000000000000000000000000') as `0x${string}`, rwa, signed, registry: env('NEXT_PUBLIC_REGISTRY') as `0x${string}` | undefined, journal, notifier, stats,
+  referenceMaxBps: Number(env('REFERENCE_MAX_DISAGREE_BPS') ?? 200), referenceRequired: env('REFERENCE_REQUIRED') !== 'false', broadcast: env('KEEPER_BROADCAST') !== 'rpc' });
 
 async function resolveUnresolved(): Promise<void> {
   for (const e of journal.unresolved()) {
@@ -111,7 +114,7 @@ createServer((req, res) => {
   res.setHeader('content-type', 'application/json');
   res.setHeader('access-control-allow-origin', '*');
   if (url.pathname === '/api/agent/keeper' || url.pathname === '/') {
-    res.end(JSON.stringify({ ...stats.snapshot(), keeper: account?.address ?? null, book: BOOK ?? null, mode: wallet ? 'LIVE' : 'OBSERVE', transactionApi: signed ? 'KEYED' : 'ETH_CALL_FALLBACK', recorder: recorder.snapshot(), recent: journal.all().slice(-25) }));
+    res.end(JSON.stringify({ ...stats.snapshot(), keeper: account?.address ?? null, book: BOOK ?? null, mode: wallet ? 'LIVE' : 'OBSERVE', transactionApi: signed ? 'KEYED' : 'ETH_CALL_FALLBACK', recorder: recorder.snapshot(), mirror: mirror ? { sent: mirror.sent, failed: mirror.failed } : null, recent: journal.all().slice(-25) }));
     return;
   }
   if (url.pathname === '/api/agent/journal') {
@@ -125,6 +128,29 @@ createServer((req, res) => {
       return true;
     });
     res.end(JSON.stringify({ rows: rows.slice(-1500) }));
+    return;
+  }
+  if (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/agent-card.json') {
+    const origin = env('PUBLIC_KEEPER_URL') ?? env('RENDER_EXTERNAL_URL') ?? `http://localhost:${PORT}`;
+    const web = env('PUBLIC_WEB_ORIGIN') ?? '';
+    res.end(JSON.stringify({
+      name: 'Tare Keeper',
+      description: 'Untrusted keeper agent for TareBook standing orders. It proposes fills, simulates first, and the contract refuses anything below the signed share floor. It also sells a decomposition certificate over x402.',
+      url: `${web}/api/mcp`,
+      version: '0.1.0',
+      provider: { organization: '0xkinno' },
+      capabilities: { streaming: false, pushNotifications: false },
+      defaultInputModes: ['application/json'],
+      defaultOutputModes: ['application/json'],
+      skills: [
+        { id: 'keeper_status', name: 'Keeper status', description: `Passes, fills, refusals by typed reason and reference checks at ${origin}/api/agent/keeper.` },
+        { id: 'keeper_journal', name: 'Decision journal', description: `Compact decision history at ${origin}/api/agent/journal.` },
+        { id: 'tare_certificate', name: 'Tare Certificate', description: `A hash-committed decomposition of one ticker across wrappers, paid per call over x402 at ${web}/api/certificate.` },
+      ],
+      identity: env('KEEPER_AGENT_ID') ? { standard: 'ERC-8004', chainId: 56, agentId: env('KEEPER_AGENT_ID'), registry: '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432' } : null,
+      payments: { standard: 'x402', endpoint: `${web}/api/certificate`, networks: ['eip155:56'] },
+      runtime: { host: 'Render web service, Singapore', selfHosted: true },
+    }));
     return;
   }
   if (url.pathname === '/healthz') { res.end('{"ok":true}'); return; }

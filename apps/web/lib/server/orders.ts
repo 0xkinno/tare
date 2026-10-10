@@ -2,6 +2,7 @@ import 'server-only';
 import { parseAbi } from 'viem';
 import { TICKERS, makeClient, tickerIdOf, wrapperByToken } from '@tare/registry';
 import { retainedJournal } from './journal';
+import { SignedClient } from '@tare/binance';
 
 export const BOOK = (process.env.NEXT_PUBLIC_TAREBOOK || '') as `0x${string}` | '';
 const chain = makeClient(process.env.BSC_RPC_URL);
@@ -9,6 +10,32 @@ const abi = parseAbi([
   'function nextId() view returns (uint256)',
   'function orders(uint256) view returns (address owner, uint8 side, uint8 status, uint32 wrapperMask, uint64 deadline, bytes32 tickerId, uint128 amount, uint128 limit)',
 ]);
+
+const okey = process.env.BINANCE_WEB3_API_KEY, osecret = process.env.BINANCE_WEB3_SECRET_KEY;
+const detailClient = okey && osecret ? new SignedClient({ apiKey: okey, secretKey: osecret, origin: process.env.BINANCE_WEB3_ORIGIN }) : null;
+const detailCache = new Map<string, { at: number; v: Reconciliation }>();
+
+/** One diary fill line checked against the Wallet API transaction detail (an independent index of the same chain). */
+export interface Reconciliation {
+  tx: string;
+  state: 'MATCH' | 'MISMATCH' | 'NOT_INDEXED' | 'UNAVAILABLE';
+  txStatus: string | null;
+  block: string | null;
+  feeBnb: string | null;
+}
+
+async function reconcile(tx: string): Promise<Reconciliation> {
+  const hit = detailCache.get(tx);
+  if (hit && Date.now() - hit.at < 600_000) return hit.v;
+  let v: Reconciliation = { tx, state: 'UNAVAILABLE', txStatus: null, block: null, feeBnb: null };
+  if (detailClient) {
+    const r = await detailClient.txDetail(tx);
+    if (r.ok) v = { tx, state: r.data.status.toLowerCase() === 'success' ? 'MATCH' : 'MISMATCH', txStatus: r.data.status, block: r.data.height, feeBnb: r.data.fee };
+    else if ('notFound' in r || ('degraded' in r && r.degraded.kind === 'MALFORMED')) v = { tx, state: 'NOT_INDEXED', txStatus: null, block: null, feeBnb: null };
+  }
+  if (v.state !== 'UNAVAILABLE') detailCache.set(tx, { at: Date.now(), v });
+  return v;
+}
 
 export interface OrderView {
   id: string;
@@ -22,6 +49,8 @@ export interface OrderView {
   wrapperMask: number;
   /** plain sentences written only from the keeper journal and receipts */
   diary: string[];
+  /** Each confirmed fill in the diary, reconciled with the Binance transaction detail. */
+  reconciliation: Reconciliation[];
 }
 
 interface JournalRow { t: string; orderId: string; status: string; decision: string; reasons: string[]; wrapper?: string; sharesWad?: string; txHash?: string }
@@ -33,6 +62,7 @@ const WORDS: Record<string, string> = {
   BROKEN_QUOTE: 'a quote was far from its own reference and was not treated as a deal',
   SIM_FAILED: 'the pre-flight simulation failed, so nothing was sent',
   API_DEGRADED: 'a data source was unreachable, so nothing was judged',
+  REFERENCE_DISAGREE: 'two independent price references disagreed, so nothing was filled',
 };
 
 const stamp = (iso: string): string => {
@@ -98,8 +128,12 @@ export async function ordersOf(owner: string): Promise<{ deployed: boolean; orde
     .map(({ id, o }): OrderView => {
       const ticker = byId.get(o[5].toLowerCase()) ?? null;
       const status = o[2] === 1 ? 'filled' : o[2] === 2 ? 'cancelled' : Number(o[4]) < now ? 'expired' : 'open';
-      return { id: id.toString(), owner: o[0], side: o[1] === 0 ? 'BUY' : 'SELL', status, ticker, amount: o[6].toString(), limit: o[7].toString(), deadline: new Date(Number(o[4]) * 1000).toISOString(), wrapperMask: o[3], diary: diaryFor(id.toString(), journal, ticker) };
+      return { id: id.toString(), owner: o[0], side: o[1] === 0 ? 'BUY' : 'SELL', status, ticker, amount: o[6].toString(), limit: o[7].toString(), deadline: new Date(Number(o[4]) * 1000).toISOString(), wrapperMask: o[3], diary: diaryFor(id.toString(), journal, ticker), reconciliation: [] };
     })
     .reverse();
+  // Reconcile every confirmed fill hash with the Wallet API (cached ten minutes, at most eight hashes per request).
+  const fills = orders.flatMap((o) => journal.filter((r) => r.orderId === o.id && r.status === 'CONFIRMED' && r.txHash).map((r) => ({ o, tx: r.txHash as string })));
+  const seen = new Set<string>();
+  await Promise.all(fills.filter((f) => (seen.has(f.tx) ? false : (seen.add(f.tx), true))).slice(0, 8).map(async (f) => { f.o.reconciliation.push(await reconcile(f.tx)); }));
   return { deployed: true, orders, keeper };
 }

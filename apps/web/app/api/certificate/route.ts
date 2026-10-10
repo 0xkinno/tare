@@ -14,7 +14,11 @@ export const dynamic = 'force-dynamic';
 const ORIGIN = process.env.BINANCE_WEB3_ORIGIN ?? 'https://web3.binance.com';
 // The B402 facilitator on BSC settles in the United Stables token (the `supported` response names it), 18 decimals.
 const PRICE_WEI = process.env.CERT_PRICE_WEI ?? '10000000000000000'; // 0.01
-const PAY_ASSET = '0xcE24439F2D9C6a2289F741120FE202248B666666';
+const U_ASSET = '0xcE24439F2D9C6a2289F741120FE202248B666666';
+const USDT_ASSET = '0x55d398326f99059fF775485246999027B3197955';
+
+interface Kind { scheme: string; network: string; extra: Record<string, unknown> }
+interface Requirement { scheme: string; network: string; amount: string; asset: string; payTo: string; maxTimeoutSeconds: number; extra: Record<string, unknown> }
 
 async function b402(op: 'supported' | 'verify' | 'settle', body: unknown): Promise<{ status: number; json: Record<string, unknown> }> {
   const key = process.env.BINANCE_WEB3_API_KEY, secret = process.env.BINANCE_WEB3_SECRET_KEY;
@@ -33,20 +37,26 @@ export async function GET(req: Request) {
   if (!wrappersFor(ticker).length) return NextResponse.json({ error: 'unknown ticker' }, { status: 400 });
 
   const payTo = process.env.B402_PAY_TO;
-  const requirementsFor = async () => {
+  // Both options the facilitator reports for BSC: United Stables by EIP-3009 and Tether USD by permit2-exact.
+  // The paying wallet picks one; the replayed payment must match one of these entries exactly.
+  const requirementsFor = async (): Promise<Requirement[]> => {
     const s = await b402('supported', {});
-    const kinds = ((s.json.data as { kinds?: { scheme: string; network: string; extra: Record<string, unknown> }[] } | undefined)?.kinds ?? []).filter((k) => k.network === 'eip155:56');
-    const kind = kinds.find((k) => k.scheme === 'exact' && k.extra.assetTransferMethod === 'eip3009') ?? kinds.find((k) => k.scheme === 'exact') ?? kinds[0];
-    return kind && payTo
-      ? { scheme: kind.scheme, network: 'eip155:56', amount: PRICE_WEI, asset: PAY_ASSET, payTo, maxTimeoutSeconds: 300, extra: kind.extra }
-      : null;
+    const kinds = ((s.json.data as { kinds?: Kind[] } | undefined)?.kinds ?? []).filter((k) => k.network === 'eip155:56' && k.scheme === 'exact');
+    if (!payTo) return [];
+    const pick = (name: string, method: string) => kinds.find((k) => k.extra.name === name && k.extra.assetTransferMethod === method);
+    const out: Requirement[] = [];
+    const usdt = pick('Tether USD', 'permit2-exact');
+    const u = pick('United Stables', 'eip3009');
+    if (usdt) out.push({ scheme: usdt.scheme, network: 'eip155:56', amount: PRICE_WEI, asset: USDT_ASSET, payTo, maxTimeoutSeconds: 300, extra: usdt.extra });
+    if (u) out.push({ scheme: u.scheme, network: 'eip155:56', amount: PRICE_WEI, asset: U_ASSET, payTo, maxTimeoutSeconds: 300, extra: u.extra });
+    return out;
   };
 
   const header = req.headers.get('x-payment') ?? req.headers.get('payment-signature');
   if (!header) {
     const reqs = await requirementsFor();
-    if (!reqs) return NextResponse.json({ error: 'B402_NOT_CONFIGURED', message: 'Paid certificates need the B402 merchant configured (API key with B402 permission and a payTo address).' }, { status: 503 });
-    return NextResponse.json({ x402Version: 2, accepts: [reqs] }, { status: 402 });
+    if (reqs.length === 0) return NextResponse.json({ error: 'B402_NOT_CONFIGURED', message: 'Paid certificates need the B402 merchant configured (API key with B402 permission and a payTo address).' }, { status: 503 });
+    return NextResponse.json({ x402Version: 2, resource: { url: `${url.origin}/api/certificate?ticker=${ticker}` }, accepts: reqs }, { status: 402 });
   }
 
   let payload: unknown;
@@ -55,10 +65,11 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: 'bad payment header' }, { status: 400 });
   }
-  const reqs = await requirementsFor();
-  if (!reqs) return NextResponse.json({ error: 'B402_NOT_CONFIGURED' }, { status: 503 });
-  const accepted = (payload as { accepted?: unknown }).accepted;
-  if (JSON.stringify(accepted) !== JSON.stringify(reqs)) return NextResponse.json({ error: 'payment does not match requirements' }, { status: 402 });
+  const all = await requirementsFor();
+  if (all.length === 0) return NextResponse.json({ error: 'B402_NOT_CONFIGURED' }, { status: 503 });
+  const accepted = JSON.stringify((payload as { accepted?: unknown }).accepted);
+  const reqs = all.find((r) => JSON.stringify(r) === accepted);
+  if (!reqs) return NextResponse.json({ error: 'payment does not match requirements' }, { status: 402 });
   const verified = await b402('verify', { x402Version: 2, paymentPayload: payload, paymentRequirements: reqs });
   if (verified.status !== 200 || (verified.json.data as { isValid?: boolean } | undefined)?.isValid === false) return NextResponse.json({ error: 'payment not valid', detail: verified.json }, { status: 402 });
 

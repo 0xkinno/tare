@@ -15,6 +15,7 @@ export const REASON_WORDS: Record<RefusalReason, string> = {
   BROKEN_QUOTE: 'a quote was far from the real price and was not treated as a deal',
   SIM_FAILED: 'the pre-flight simulation failed, so nothing was sent',
   API_DEGRADED: 'a data source was unreachable, so nothing was judged',
+  REFERENCE_DISAGREE: 'two independent price references disagreed, so nothing was filled',
 };
 
 const wad = (s: string): string => {

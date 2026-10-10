@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LiveShelfStrip } from '@/components/LiveShelfStrip';
+import { LiveCounters } from '@/components/LiveCounters';
 import { readData } from '@/lib/server/data';
 import { bscscan } from '@/lib/format';
 
@@ -27,6 +28,7 @@ export default async function JudgePage() {
     <div className="mx-auto w-[min(1180px,calc(100%-24px))] py-10">
       <p className="font-mono text-xs uppercase tracking-widest text-graphite">About two minutes, no wallet needed</p>
       <h1 className="h2 mt-1">Judge path</h1>
+      <div className="mt-6"><LiveCounters heading="Alive while you read" /></div>
 
       <ol className="mt-10 space-y-12">
         <li>

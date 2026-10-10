@@ -24,7 +24,8 @@ export type RefusalReason =
   | 'NO_CONTRACT_ROUTE'
   | 'BROKEN_QUOTE'
   | 'SIM_FAILED'
-  | 'API_DEGRADED';
+  | 'API_DEGRADED'
+  | 'REFERENCE_DISAGREE';
 
 export const REFUSAL_REASONS: readonly RefusalReason[] = [
   'PREMIUM_ABOVE_LIMIT',
@@ -33,7 +34,30 @@ export const REFUSAL_REASONS: readonly RefusalReason[] = [
   'BROKEN_QUOTE',
   'SIM_FAILED',
   'API_DEGRADED',
+  'REFERENCE_DISAGREE',
 ];
+
+/** Second-opinion check on the equity reference (fail closed). Prices are WAD USD per share. */
+export interface ReferenceCheck {
+  issuerReference: UsdPerShare | null;
+  independentReference: UsdPerShare | null;
+  /** Largest tolerated gap between the two, in basis points of the independent reference. */
+  maxDisagreeBps: number;
+  /** When true, a missing independent reference refuses instead of proceeding on one source. */
+  required: boolean;
+}
+
+export function referenceRefusal(c: ReferenceCheck): { reason: RefusalReason; detail: string } | null {
+  const a = c.issuerReference, b = c.independentReference;
+  if (a !== null && b !== null) {
+    const diff = a > b ? a - b : b - a;
+    const bps = b === 0n ? Number.POSITIVE_INFINITY : Number((diff * 10_000n) / b);
+    if (bps > c.maxDisagreeBps) return { reason: 'REFERENCE_DISAGREE', detail: `issuer feed and independent source differ by ${bps} bps (limit ${c.maxDisagreeBps})` };
+    return null;
+  }
+  if (b === null && c.required) return { reason: 'API_DEGRADED', detail: 'independent reference unavailable, failing closed' };
+  return null;
+}
 
 /** Fraction of a quote's own reference beyond which it is a broken quote, not a price (E12). */
 export const BROKEN_QUOTE_THRESHOLD: bigint = (WAD * 5n) / 100n;
@@ -148,8 +172,13 @@ export function decide(
   intent: Intent,
   session: SessionRead,
   degraded: boolean,
+  check?: ReferenceCheck,
 ): Decision {
   if (degraded) return { kind: 'WAIT', reasons: ['API_DEGRADED'], detail: ['data feed unavailable'] };
+  if (check) {
+    const bad = referenceRefusal(check);
+    if (bad) return { kind: 'WAIT', reasons: [bad.reason], detail: [bad.detail] };
+  }
   if (quotes.length === 0) return { kind: 'SKIP', reasons: ['NO_CONTRACT_ROUTE'], detail: ['no wrapper has a contract route'] };
   const ranked = rank(quotes, intent, session);
   const best = ranked[0];

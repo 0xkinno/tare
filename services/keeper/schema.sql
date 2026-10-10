@@ -36,6 +36,8 @@ create table if not exists keeper_actions (
   shares_wad numeric,
   latencies_ms jsonb
 );
+-- gas, broadcast path and reference details for each decision (added after the first deploy)
+alter table keeper_actions add column if not exists detail jsonb;
 create index if not exists keeper_actions_order on keeper_actions (order_id, t desc);
 
 create table if not exists orders_cache (

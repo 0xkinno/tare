@@ -21,12 +21,23 @@ export interface JournalEntry {
   gasUsed?: string;
   sharesWad?: string;
   latenciesMs?: Record<string, number>;
+  /** Which source gave the independent reference, the two prices (WAD) and their gap, for every decision. */
+  referenceSource?: string;
+  referenceIndependentWad?: string;
+  referenceIssuerWad?: string;
+  referenceDisagreeBps?: number;
+  /** Gas for the fill: what the Transaction API suggested, what the node simulated, and the limit sent (max x 1.25). */
+  gasSuggested?: string;
+  gasSimulated?: string;
+  gasLimitUsed?: string;
+  /** Which path carried the signed transaction. */
+  broadcastVia?: 'TRANSACTION_API' | 'RPC';
 }
 
 export class Journal {
   private entries: JournalEntry[] = [];
 
-  constructor(private readonly path: string) {
+  constructor(private readonly path: string, private readonly onAppend?: (e: JournalEntry) => void) {
     if (existsSync(path)) {
       this.entries = readFileSync(path, 'utf8')
         .split('\n')

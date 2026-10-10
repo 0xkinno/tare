@@ -2,12 +2,20 @@ import { PublicRwaClient } from '@tare/binance';
 import { CORE_TICKERS, TICKERS, WRAPPERS, wrappersFor } from '@tare/registry';
 import { ShelfBrowser, type ShelfRowData } from '@/components/ShelfBrowser';
 import { getShelf } from '@/lib/server/shelf';
+import { CatalogueBrowser, type CatalogueTicker } from '@/components/CatalogueBrowser';
+import catalogue from '@/lib/catalogue.generated.json';
 
 export const revalidate = 30;
 export const preferredRegion = ['sin1', 'hkg1'];
 export const metadata = { title: 'Shelf' };
 
 const rwa = new PublicRwaClient({ origin: process.env.BINANCE_API_ORIGIN });
+
+const FILLABLE = new Set(WRAPPERS.map((w) => w.token.toLowerCase()));
+const CAT_ROWS: CatalogueTicker[] = (catalogue.tickers as { ticker: string; name: string | null; industry: string | null; tokens: { symbol: string; token: string; issuer: string }[] }[]).map((t) => ({
+  ticker: t.ticker, name: t.name, industry: t.industry,
+  tokens: t.tokens.map((x) => ({ symbol: x.symbol, issuer: x.issuer, fillable: FILLABLE.has(x.token.toLowerCase()) })),
+}));
 
 export default async function ShelfPage() {
   const rows: ShelfRowData[] = await Promise.all(
@@ -43,6 +51,7 @@ export default async function ShelfPage() {
       <h1 className="h2 mt-1">The Shelf</h1>
       <p className="mt-3 max-w-2xl text-graphite">Every ticker listed here has at least one wrapper a contract can fill. The green glow marks the wrapper that delivers the most shares for $50 right now, counted in shares, not token price.</p>
       <div className="mt-8"><ShelfBrowser rows={rows} concepts={concepts} /></div>
+      <CatalogueBrowser rows={CAT_ROWS} generatedAt={catalogue.generatedAt} tokenCount={catalogue.tokenCount} />
     </div>
   );
 }

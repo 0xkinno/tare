@@ -1,5 +1,6 @@
 import 'server-only';
-import { PublicRwaClient, type MarketStatus, type RwaDynamic } from '@tare/binance';
+import { PublicRwaClient, SignedClient, type MarketStatus, type RwaDynamic } from '@tare/binance';
+import { independentReference, verdict as refVerdict, DEFAULT_MAX_DISAGREE_BPS, type ReferenceVerdict } from '@tare/reference';
 import {
   USDT,
   WRAPPERS,
@@ -30,7 +31,28 @@ import {
 } from '@tare/kernel';
 
 const rwa = new PublicRwaClient({ origin: process.env.BINANCE_API_ORIGIN });
+const apiKey = process.env.BINANCE_WEB3_API_KEY, apiSecret = process.env.BINANCE_WEB3_SECRET_KEY;
+export const signedApi = apiKey && apiSecret ? new SignedClient({ apiKey, secretKey: apiSecret, origin: process.env.BINANCE_WEB3_ORIGIN }) : null;
+
+export interface DepthView { pools: number; protocols: string[]; source: 'MARKET_TOP_LIQUIDITY'; liquidityUsdReported: boolean }
 export const chain = makeClient(process.env.BSC_RPC_URL);
+
+export const REFERENCE_MAX_BPS = Number(process.env.REFERENCE_MAX_DISAGREE_BPS ?? DEFAULT_MAX_DISAGREE_BPS);
+export const REFERENCE_REQUIRED = process.env.REFERENCE_REQUIRED !== 'false';
+
+/** The second-opinion equity reference, with its source and timestamp, and the fail-closed verdict against the issuer feed. */
+export interface IndependentView {
+  ok: boolean;
+  source: string | null;
+  sourceUrl: string | null;
+  usdPerShare: string | null;
+  asOf: string | null;
+  fetchedAt: string;
+  intraday: { price: string; at: string } | null;
+  daily: { close: string; date: string; previousClose: string | null } | null;
+  failure: string | null;
+  verdict: ReferenceVerdict;
+}
 
 export type Degradation = { kind: 'UNREACHABLE' | 'GEO_BLOCKED' | 'AUTH' | 'RATE_LIMITED' | 'BODY_ERROR' | 'MALFORMED'; message: string };
 
@@ -51,6 +73,8 @@ export interface WrapperView {
   /** explains a missing quote: no pool, or only an RFQ route */
   quoteNote: string | null;
   deepestPoolUsd: number | null;
+  /** Pool count and venues from the Market API top-liquidity endpoint (its liquidityUsd field is null for these tokens). */
+  depth: DepthView | null;
   icon: string | null;
 }
 
@@ -61,6 +85,9 @@ export interface ShelfView {
   session: SessionRead;
   referenceUsdPerShare: string | null;
   referenceNote: string;
+  independent: IndependentView;
+  /** The Ondo equity feed value when the ticker has one, before any second-opinion fallback. */
+  issuerReferenceUsdPerShare: string | null;
   wrappers: WrapperView[];
   /** registry index of the wrapper that delivers the most shares for the quote size, if any is not broken */
   bestIndex: number | null;
@@ -127,6 +154,25 @@ export async function getShelf(ticker: string, quoteUsd = 50): Promise<ShelfView
       referenceNote = 'The reference could not be read: the data source is unreachable.';
     }
 
+    // Second opinion: an independent public source. Fail closed when it disagrees or is required and missing.
+    const ind = await memo(`ind:${T}`, 30_000, () => independentReference(T));
+    const issuerRef = referenceUsdPerShare;
+    const verdict = refVerdict(issuerRef, ind.ok ? ind.usdPerShare : null, REFERENCE_MAX_BPS, REFERENCE_REQUIRED);
+    const src = ind.ok ? (ind.source === 'YAHOO_CHART' ? 'Yahoo Finance chart' : 'Nasdaq quote') : null;
+    if (verdict.status === 'AGREE' && src) {
+      referenceNote += ` Cross-checked against the ${src}: ${verdict.disagreeBps} bps apart.`;
+    } else if (verdict.status === 'DISAGREE' && src) {
+      referenceNote = `The Ondo equity feed and the ${src} disagree by ${verdict.disagreeBps} bps (limit ${REFERENCE_MAX_BPS}). Tare will not plan against either.`;
+    } else if (verdict.status === 'SINGLE_SOURCE' && src && issuerRef === null && ind.ok) {
+      referenceUsdPerShare = ind.usdPerShare;
+      referenceNote = `No issuer reference exists for this ticker. Equity reference from the ${src}, ${ind.intraday?.at ?? ind.asOf}.`;
+    } else if (verdict.status === 'UNAVAILABLE') {
+      referenceNote += ' The independent reference could not be read, so planning fails closed.';
+    }
+    const independent: IndependentView = ind.ok
+      ? { ok: true, source: ind.source, sourceUrl: ind.sourceUrl, usdPerShare: ind.usdPerShare.toString(), asOf: ind.asOf, fetchedAt: ind.fetchedAt, intraday: ind.intraday, daily: ind.daily, failure: null, verdict }
+      : { ok: false, source: null, sourceUrl: null, usdPerShare: null, asOf: null, fetchedAt: new Date().toISOString(), intraday: null, daily: null, failure: ind.message, verdict };
+
     const views: WrapperView[] = [];
     await Promise.all(
       ws.map(async (w, i) => {
@@ -166,11 +212,23 @@ export async function getShelf(ticker: string, quoteUsd = 50): Promise<ShelfView
             quoteNote = w.issuer === 'ONDO' ? 'Ondo names fill by owner-signed RFQ through the aggregator; no direct pool has depth.' : 'No direct pool route.';
           }
         }
+        let depth: DepthView | null = null;
+        if (signedApi) {
+          const liq = await memo(`liq:${w.token}`, 300_000, () => signedApi.topLiquidity(w.token)).catch(() => null);
+          if (liq && liq.ok) {
+            depth = {
+              pools: liq.data.length,
+              protocols: Array.from(new Set(liq.data.map((p) => p.protocol).filter((x): x is string => !!x))),
+              source: 'MARKET_TOP_LIQUIDITY',
+              liquidityUsdReported: liq.data.some((p) => p.liquidityUsd !== null),
+            };
+          }
+        }
         views.push({
           symbol: w.symbol, token: w.token, issuer: w.issuer, registryIndex: registryIndex(w), contractReceive: w.contractReceive,
           unitWad: unit?.toString() ?? null, unitPaused: paused, unitError,
           apiTokenPriceUsd: apiPrice, apiMultiplier: apiMult, apiMultiplierMatchesChain: apiMatches,
-          quote, quoteNote, deepestPoolUsd: w.deepestDirectPool?.reserveUsd ?? null,
+          quote, quoteNote, deepestPoolUsd: w.deepestDirectPool?.reserveUsd ?? null, depth,
           icon: null,
         });
       }),
@@ -182,7 +240,7 @@ export async function getShelf(ticker: string, quoteUsd = 50): Promise<ShelfView
 
     return {
       ticker: T, tickerId: tickerIdOf(T), quoteUsd, session,
-      referenceUsdPerShare: referenceUsdPerShare?.toString() ?? null, referenceNote, wrappers: views,
+      referenceUsdPerShare: referenceUsdPerShare?.toString() ?? null, referenceNote, independent, issuerReferenceUsdPerShare: issuerRef?.toString() ?? null, wrappers: views,
       bestIndex: best ? best.registryIndex : null, degraded, asOf: new Date().toISOString(), block: block?.toString() ?? null,
     } satisfies ShelfView;
   });

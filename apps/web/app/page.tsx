@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LiveCounters } from '@/components/LiveCounters';
 import { Pen, Scale } from 'lucide-react';
 import { BalanceArtifact } from '@/components/hero/BalanceArtifact';
 import { LiveShelfStrip } from '@/components/LiveShelfStrip';
@@ -62,6 +63,8 @@ export default async function Landing() {
       </section>
 
       {/* 2. Live shelf strip */}
+      <section className="mx-auto w-[min(1180px,calc(100%-24px))] pt-4" aria-label="Live counters"><LiveCounters /></section>
+
       <section className="mx-auto w-[min(1180px,calc(100%-24px))] py-10" aria-labelledby="strip">
         <h2 id="strip" className="sr-only">Live shelf</h2>
         <LiveShelfStrip />

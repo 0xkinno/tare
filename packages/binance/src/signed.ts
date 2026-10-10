@@ -59,6 +59,16 @@ export class SignedClient {
   }
 
   private async call<T>(method: 'GET' | 'POST', path: string, params: Record<string, string>, body: unknown, parse: (d: unknown) => T | null): Promise<Result<T>> {
+    // 40103 "Timestamp outside recv_window": over a VPN the round trip can exceed the window. One retry with a
+    // fresh timestamp fixes it.
+    let r = await this.callOnce(method, path, params, body, parse);
+    for (let i = 0; i < 3 && !r.ok && 'degraded' in r && r.degraded.kind === 'AUTH' && /recv_window|40103|401/.test(r.degraded.message); i++) {
+      r = await this.callOnce(method, path, params, body, parse);
+    }
+    return r;
+  }
+
+  private async callOnce<T>(method: 'GET' | 'POST', path: string, params: Record<string, string>, body: unknown, parse: (d: unknown) => T | null): Promise<Result<T>> {
     const qs = new URLSearchParams(params).toString();
     const requestPath = `${BUILD_PREFIX}${path}${qs ? `?${qs}` : ''}`;
     const bodyStr = body === undefined ? '' : JSON.stringify(body);
@@ -117,11 +127,70 @@ export class SignedClient {
 
   /** Off-chain simulation before any broadcast (T9). Body shape follows the documented `evmTx` field. */
   simulate(evmTx: { from: string; to: string; data: string; value?: string }): Promise<Result<Simulation>> {
-    return this.call('POST', '/api/v1/dex/pre-transaction/simulate', {}, { binanceChainId: '56', evmTx }, (d) => {
+    // `value` is required by the endpoint: without it the call is a 40001 and the keeper silently fell back to eth_call.
+    return this.call('POST', '/api/v1/dex/pre-transaction/simulate', {}, { binanceChainId: '56', evmTx: { ...evmTx, value: evmTx.value ?? '0' } }, (d) => {
       const o = obj(d);
       if (!o) return null;
       return { status: s(o.status) ?? s(o.executionStatus), raw: o };
     });
+  }
+
+  /** Current BSC gas price in wei (legacy), low / medium / high. */
+  gasPrice(): Promise<Result<{ low: string; medium: string; high: string }>> {
+    return this.call('GET', '/api/v1/dex/pre-transaction/gas-price', { binanceChainId: '56' }, undefined, (d) => {
+      const g = obj(obj(d)?.evmLegacyGasPrice);
+      const low = s(g?.lowGasPrice), medium = s(g?.mediumGasPrice), high = s(g?.highGasPrice);
+      return low && medium && high ? { low, medium, high } : null;
+    });
+  }
+
+  /** Suggested gas limit for an unsigned call. A reverting call comes back as a typed BODY_ERROR 40435. */
+  gasLimit(evmTx: { from: string; to: string; data: string; value?: string }): Promise<Result<{ gasLimit: string; raw: unknown }>> {
+    return this.call('POST', '/api/v1/dex/pre-transaction/gas-limit', {}, { binanceChainId: '56', evmTx: { ...evmTx, value: evmTx.value ?? '0' } }, (d) => {
+      const o = obj(d);
+      const v = s(o?.gasLimit) ?? s(o?.gas) ?? s(d);
+      return v && /^[0-9]+$/.test(v) ? { gasLimit: v, raw: d } : null;
+    });
+  }
+
+  /** Wallet API: full transaction detail by hash. A null result means not indexed yet. */
+  txDetail(txHash: string): Promise<Result<{ status: string; height: string | null; gasUsed: string | null; fee: string | null; time: string | null; methodId: string | null; raw: Record<string, unknown> }>> {
+    return this.call('GET', '/api/v1/dex/post-transaction/transaction-detail-by-txhash', { binanceChainId: '56', txHash }, undefined, (d) => {
+      const first = Array.isArray(d) ? obj(d[0]) : obj(d);
+      if (!first) return null;
+      return { status: s(first.txStatus) ?? 'unknown', height: s(first.height), gasUsed: s(first.gasUsed), fee: s(first.txFee), time: s(first.txTime), methodId: s(first.methodId), raw: first };
+    });
+  }
+
+  /** Market API: top liquidity pools for a token on BSC. */
+  topLiquidity(token: string): Promise<Result<{ pool: string; poolAddress: string | null; liquidityUsd: string | null; protocol: string | null }[]>> {
+    return this.call('GET', '/api/v1/dex/market/token/top-liquidity', { binanceChainId: '56', tokenContractAddress: token }, undefined, (d) => {
+      if (!Array.isArray(d)) return null;
+      return d.flatMap((x) => {
+        const o = obj(x);
+        const pool = s(o?.pool);
+        return o && pool ? [{ pool, poolAddress: s(o.poolAddress), liquidityUsd: s(o.liquidityUsd), protocol: s(o.protocolName) }] : [];
+      });
+    });
+  }
+
+  /** Address portfolio: realized PnL and holding detail for one token held by an address. */
+  tokenLatestPnl(walletAddress: string, token: string): Promise<Result<Record<string, unknown>>> {
+    return this.call('GET', '/api/v1/dex/market/portfolio/token/latest-pnl', { binanceChainId: '56', walletAddress, tokenContractAddress: token }, undefined, (d) => (Array.isArray(d) ? obj(d[0]) : obj(d)));
+  }
+
+  /** Relay a client-signed raw transaction. Returns the hash and the order id used by post-transaction queries. */
+  broadcast(address: string, signedTransaction: string): Promise<Result<{ txHash: string; orderId: string | null }>> {
+    return this.call('POST', '/api/v1/dex/pre-transaction/broadcast-transaction', {}, { binanceChainId: '56', address, signedTransaction, enableMevProtection: false }, (d) => {
+      const o = obj(d);
+      const txHash = s(o?.txHash);
+      return txHash ? { txHash, orderId: s(o?.orderId) } : null;
+    });
+  }
+
+  /** Any documented endpoint, returned as the raw `data` payload. Used for the endpoints Tare reads but does not model. */
+  raw(method: 'GET' | 'POST', path: string, params: Record<string, string> = {}, body?: unknown): Promise<Result<unknown>> {
+    return this.call(method, path, params, body, (d) => (d === undefined ? null : d));
   }
 
   walletBalances(address: string): Promise<Result<unknown[]>> {

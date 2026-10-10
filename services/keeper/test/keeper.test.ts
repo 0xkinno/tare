@@ -8,6 +8,13 @@ import { Engine, type OpenOrder } from '../src/engine';
 import { NoopNotifier } from '../src/notify';
 import { PublicRwaClient } from '@tare/binance';
 import { wrappersFor } from '@tare/registry';
+import { usdPerShare, wadFromDecimal } from '@tare/kernel';
+import type { ReferenceResult } from '@tare/reference';
+
+const indep = (price: string): (() => Promise<ReferenceResult>) => async () => ({
+  ok: true, ticker: 'NVDA', source: 'YAHOO_CHART', sourceUrl: 'test', usdPerShare: wadFromDecimal(price), asOf: 'now', intraday: null, daily: null, fetchedAt: 'now',
+});
+const indepDown: () => Promise<ReferenceResult> = async () => ({ ok: false, ticker: 'NVDA', reason: 'UNREACHABLE', message: 'down', tried: ['YAHOO_CHART', 'NASDAQ_QUOTE'] });
 
 const tmp = () => join(mkdtempSync(join(tmpdir(), 'tare-')), 'j.jsonl');
 
@@ -45,7 +52,10 @@ describe('stats', () => {
     const snap = s.snapshot();
     expect(snap.longestGapSec).toBe(3);
     expect(snap.refusalsByReason.BROKEN_QUOTE).toBe(2);
-    expect(Object.keys(snap.refusalsByReason)).toHaveLength(6);
+    expect(Object.keys(snap.refusalsByReason)).toHaveLength(7);
+    s.referenceCheck('agree');
+    s.referenceCheck('disagree');
+    expect(s.snapshot().reference).toEqual({ checks: 2, agree: 1, disagree: 1, single: 0, unavailable: 0 });
   });
 });
 
@@ -73,7 +83,7 @@ describe('engine', () => {
     const chain = { readContract: async () => { throw new Error('rpc down'); }, getBlockNumber: async () => 1n } as never;
     const eng = new Engine({
       chain, wallet: null, account: null, book: owner, rwa: new PublicRwaClient({ fetchImpl: (async () => { throw new Error('offline'); }) as never }),
-      signed: null, journal, stats, notifier: NoopNotifier,
+      signed: null, journal, stats, notifier: NoopNotifier, independent: indep('230'),
     });
     const out = await eng.process(base, 'NVDA');
     expect(out.kind).toBe('WAIT');
@@ -97,10 +107,52 @@ describe('engine', () => {
     } as never;
     const eng = new Engine({
       chain, wallet: null, account: null, book: owner, rwa: new PublicRwaClient({ fetchImpl: (async () => { throw new Error('offline'); }) as never }),
-      signed: null, journal, stats, notifier: NoopNotifier, routes: async () => [],
+      signed: null, journal, stats, notifier: NoopNotifier, routes: async () => [], independent: indep('230'),
     });
     const out = await eng.process(base, 'NVDA');
     expect(out.kind).toBe('SKIP');
     if (out.kind === 'SKIP') expect(out.reasons).toEqual(['NO_CONTRACT_ROUTE']);
+  });
+
+  const liveChain = {
+    readContract: async ({ functionName }: { functionName: string }) => {
+      if (functionName === 'getSValue') return [1_001_715_248_795_989_800n, false];
+      if (functionName === 'uiMultiplier') return 1_000_778_223_752_807_865n;
+      if (functionName === 'getCurrentMultiplier') return [10n ** 18n, 0n, 0n];
+      if (functionName === 'isTokenPaused' || functionName === 'isPaused') return false;
+      return '0x0000000000000000000000000000000000000001';
+    },
+    getBlockNumber: async () => 1n,
+  } as never;
+  const offline = new PublicRwaClient({ fetchImpl: (async () => { throw new Error('offline'); }) as never });
+
+  it('refuses REFERENCE_DISAGREE when the issuer feed and the independent source differ by more than the limit', async () => {
+    const journal = new Journal(tmp());
+    const stats = new Stats();
+    const eng = new Engine({
+      chain: liveChain, wallet: null, account: null, book: owner, rwa: offline, signed: null, journal, stats, notifier: NoopNotifier,
+      routes: async () => [], independent: indep('229'), issuerReference: async () => usdPerShare(wadFromDecimal('240')), referenceMaxBps: 200,
+    });
+    const out = await eng.process(base, 'NVDA');
+    expect(out.kind).toBe('WAIT');
+    if (out.kind === 'WAIT') expect(out.reasons).toEqual(['REFERENCE_DISAGREE']);
+    const snap = stats.snapshot();
+    expect(snap.refusalsByReason.REFERENCE_DISAGREE).toBe(1);
+    expect(snap.reference.disagree).toBe(1);
+    const row = journal.all().at(-1)!;
+    expect(row.referenceSource).toBe('YAHOO_CHART');
+    expect(row.referenceDisagreeBps).toBeGreaterThan(200);
+  });
+
+  it('fails closed when the independent source is down and required, and proceeds to routing when optional', async () => {
+    const mk = (required: boolean) => new Engine({
+      chain: liveChain, wallet: null, account: null, book: owner, rwa: offline, signed: null, journal: new Journal(tmp()), stats: new Stats(), notifier: NoopNotifier,
+      routes: async () => [], independent: indepDown, issuerReference: async () => usdPerShare(wadFromDecimal('230')), referenceRequired: required,
+    });
+    const closed = await mk(true).process(base, 'NVDA');
+    expect(closed.kind).toBe('WAIT');
+    if (closed.kind === 'WAIT') expect(closed.reasons).toEqual(['API_DEGRADED']);
+    const open = await mk(false).process(base, 'NVDA');
+    expect(open.kind).toBe('SKIP');
   });
 });
