@@ -20,6 +20,13 @@ const USDT_ASSET = '0x55d398326f99059fF775485246999027B3197955';
 interface Kind { scheme: string; network: string; extra: Record<string, unknown> }
 interface Requirement { scheme: string; network: string; amount: string; asset: string; payTo: string; maxTimeoutSeconds: number; extra: Record<string, unknown> }
 
+/** Key-order independent JSON, so a wallet that re-serialises the accepted entry still matches. */
+function canon(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v as object).sort().map((k) => `${JSON.stringify(k)}:${canon((v as Record<string, unknown>)[k])}`).join(',')}}`;
+  return JSON.stringify(v);
+}
+
 async function b402(op: 'supported' | 'verify' | 'settle', body: unknown): Promise<{ status: number; json: Record<string, unknown> }> {
   const key = process.env.BINANCE_WEB3_API_KEY, secret = process.env.BINANCE_WEB3_SECRET_KEY;
   if (!key || !secret) return { status: 503, json: { code: 'NOT_CONFIGURED' } };
@@ -67,8 +74,8 @@ export async function GET(req: Request) {
   }
   const all = await requirementsFor();
   if (all.length === 0) return NextResponse.json({ error: 'B402_NOT_CONFIGURED' }, { status: 503 });
-  const accepted = JSON.stringify((payload as { accepted?: unknown }).accepted);
-  const reqs = all.find((r) => JSON.stringify(r) === accepted);
+  const accepted = canon((payload as { accepted?: unknown }).accepted);
+  const reqs = all.find((r) => canon(r) === accepted);
   if (!reqs) return NextResponse.json({ error: 'payment does not match requirements' }, { status: 402 });
   const verified = await b402('verify', { x402Version: 2, paymentPayload: payload, paymentRequirements: reqs });
   if (verified.status !== 200 || (verified.json.data as { isValid?: boolean } | undefined)?.isValid === false) return NextResponse.json({ error: 'payment not valid', detail: verified.json }, { status: 402 });
