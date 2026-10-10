@@ -28,7 +28,7 @@
     "server-only": "0.0.1",
     "viem": "2.21.55",
     "wagmi": "2.14.3",
-    "@tare/reference": "workspace:*"
+    "@tare/independent": "workspace:*"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.1",

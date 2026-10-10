@@ -44,9 +44,9 @@ export function HoldingsClient() {
                 {r.pnl && r.pnl.costBasisUsdPerShare && (
                   <p className="w-full text-xs text-graphite">
                     Cost basis <span className="num">${r.pnl.costBasisUsdPerShare}</span> per share
-                    {r.pnl.unrealizedUsd !== null && <> · unrealized <span className={`num ${Number(r.pnl.unrealizedUsd) >= 0 ? 'text-net' : 'text-gross'}`}>{Number(r.pnl.unrealizedUsd) >= 0 ? '+' : ''}${Number(r.pnl.unrealizedUsd).toFixed(4)}{r.pnl.unrealizedPct !== null ? ` (${r.pnl.unrealizedPct}%)` : ''}</span></>}
-                    {r.pnl.realizedUsd !== null && <> · realized <span className="num">${Number(r.pnl.realizedUsd).toFixed(4)}</span></>}
-                    {' '}· from the Address Portfolio API
+                    {r.pnl.unrealizedUsd !== null && <> Â· unrealized <span className={`num ${Number(r.pnl.unrealizedUsd) >= 0 ? 'text-net' : 'text-gross'}`}>{Number(r.pnl.unrealizedUsd) >= 0 ? '+' : ''}${Number(r.pnl.unrealizedUsd).toFixed(4)}{r.pnl.unrealizedPct !== null ? ` (${r.pnl.unrealizedPct}%)` : ''}</span></>}
+                    {r.pnl.realizedUsd !== null && <> Â· realized <span className="num">${Number(r.pnl.realizedUsd).toFixed(4)}</span></>}
+                    {' '}Â· from the Address Portfolio API
                   </p>
                 )}
               </li>

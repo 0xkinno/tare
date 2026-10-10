@@ -9,7 +9,7 @@ import { NoopNotifier } from '../src/notify';
 import { PublicRwaClient } from '@tare/binance';
 import { wrappersFor } from '@tare/registry';
 import { usdPerShare, wadFromDecimal } from '@tare/kernel';
-import type { ReferenceResult } from '@tare/reference';
+import type { ReferenceResult } from '@tare/independent';
 
 const indep = (price: string): (() => Promise<ReferenceResult>) => async () => ({
   ok: true, ticker: 'NVDA', source: 'YAHOO_CHART', sourceUrl: 'test', usdPerShare: wadFromDecimal(price), asOf: 'now', intraday: null, daily: null, fetchedAt: 'now',

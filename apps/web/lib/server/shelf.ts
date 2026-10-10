@@ -1,6 +1,6 @@
 import 'server-only';
 import { PublicRwaClient, SignedClient, type MarketStatus, type RwaDynamic } from '@tare/binance';
-import { independentReference, verdict as refVerdict, DEFAULT_MAX_DISAGREE_BPS, type ReferenceVerdict } from '@tare/reference';
+import { independentReference, verdict as refVerdict, DEFAULT_MAX_DISAGREE_BPS, type ReferenceVerdict } from '@tare/independent';
 import {
   USDT,
   WRAPPERS,

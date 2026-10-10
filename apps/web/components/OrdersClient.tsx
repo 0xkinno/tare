@@ -115,7 +115,7 @@ export function OrdersClient() {
             )}
             {(o.reconciliation ?? []).map((r) => (
               <p key={r.tx} className="mt-2 text-xs text-graphite">
-                Reconciled with Binance transaction detail for {r.tx.slice(0, 10)}…:{' '}
+                Reconciled with Binance transaction detail for {r.tx.slice(0, 10)}â€¦:{' '}
                 {r.state === 'MATCH' && <span className="text-net">{r.txStatus} at block {r.block ? Number(r.block).toLocaleString('en-US') : '?'}{r.feeBnb ? `, fee ${r.feeBnb} BNB` : ''}</span>}
                 {r.state === 'MISMATCH' && <span className="text-gross">MISMATCH: the index says {r.txStatus}</span>}
                 {r.state === 'NOT_INDEXED' && 'not indexed yet'}

@@ -1,4 +1,4 @@
-reference/
+/reference/
 .env
 .env.*
 !.env.example

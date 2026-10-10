@@ -81,11 +81,11 @@ function ReferencePanel({ shelf }: { shelf: ShelfView }) {
       <h3 className="font-display text-sm font-semibold">Equity reference, two sources</h3>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
         <dt className="text-graphite">Issuer feed</dt>
-        <dd className="num">{shelf.issuerReferenceUsdPerShare ? `$${dec(shelf.issuerReferenceUsdPerShare, 2)} · Ondo equity feed (Binance API stockInfo.price)` : 'none for this ticker (bStocks and xStocks expose no equity reference)'}</dd>
+        <dd className="num">{shelf.issuerReferenceUsdPerShare ? `$${dec(shelf.issuerReferenceUsdPerShare, 2)} Â· Ondo equity feed (Binance API stockInfo.price)` : 'none for this ticker (bStocks and xStocks expose no equity reference)'}</dd>
         <dt className="text-graphite">Independent</dt>
         <dd className="num">
           {i.ok && i.usdPerShare
-            ? <>${dec(i.usdPerShare, 2)} · {SRC_NAME[i.source ?? ''] ?? i.source} · {i.intraday ? `last print ${i.intraday.at}` : `as of ${i.asOf}`}{i.daily ? ` · daily close $${Number(i.daily.close).toFixed(2)} on ${i.daily.date}` : ''}</>
+            ? <>${dec(i.usdPerShare, 2)} Â· {SRC_NAME[i.source ?? ''] ?? i.source} Â· {i.intraday ? `last print ${i.intraday.at}` : `as of ${i.asOf}`}{i.daily ? ` Â· daily close $${Number(i.daily.close).toFixed(2)} on ${i.daily.date}` : ''}</>
             : <>unavailable: {i.failure}</>}
         </dd>
         <dt className="text-graphite">Verdict</dt>

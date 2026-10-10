@@ -48,12 +48,12 @@ importers:
       '@tare/binance':
         specifier: workspace:*
         version: link:../../packages/binance
+      '@tare/independent':
+        specifier: workspace:*
+        version: link:../../packages/independent
       '@tare/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@tare/reference':
-        specifier: workspace:*
-        version: link:../../packages/reference
       '@tare/registry':
         specifier: workspace:*
         version: link:../../packages/registry
@@ -125,19 +125,7 @@ importers:
         specifier: 2.1.8
         version: 2.1.8(@types/node@22.9.0)(lightningcss@1.33.0)
 
-  packages/kernel:
-    devDependencies:
-      fast-check:
-        specifier: 3.23.1
-        version: 3.23.1
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
-      vitest:
-        specifier: 2.1.8
-        version: 2.1.8(@types/node@22.9.0)(lightningcss@1.33.0)
-
-  packages/reference:
+  packages/independent:
     dependencies:
       '@tare/kernel':
         specifier: workspace:*
@@ -146,6 +134,18 @@ importers:
       '@types/node':
         specifier: 22.9.0
         version: 22.9.0
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.9.0)(lightningcss@1.33.0)
+
+  packages/kernel:
+    devDependencies:
+      fast-check:
+        specifier: 3.23.1
+        version: 3.23.1
       typescript:
         specifier: 5.6.3
         version: 5.6.3
@@ -227,12 +227,12 @@ importers:
       '@tare/binance':
         specifier: workspace:*
         version: link:../../packages/binance
+      '@tare/independent':
+        specifier: workspace:*
+        version: link:../../packages/independent
       '@tare/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@tare/reference':
-        specifier: workspace:*
-        version: link:../../packages/reference
       '@tare/registry':
         specifier: workspace:*
         version: link:../../packages/registry

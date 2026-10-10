@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..', '..');
 const config: NextConfig = {
   outputFileTracingRoot: root,
   outputFileTracingIncludes: { '/**': ['../../data/**/*.json', '../../data/**/*.jsonl', '../../docs/CLAIMS.json', '../../evidence/**/*'] },
-  transpilePackages: ['@tare/kernel', '@tare/registry', '@tare/binance', '@tare/verify'],
+  transpilePackages: ['@tare/kernel', '@tare/registry', '@tare/binance', '@tare/verify', '@tare/independent'],
   poweredByHeader: false,
   // Dot-prefixed route folders are not served reliably by the App Router; the well-known path is rewritten.
   async rewrites() {

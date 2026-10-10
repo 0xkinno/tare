@@ -19,7 +19,7 @@ import {
 } from '@tare/kernel';
 import { USDT, readUnit, registryIndex, wrappersFor, type WrapperRecord } from '@tare/registry';
 import type { PublicRwaClient, SignedClient } from '@tare/binance';
-import { independentReference, disagreementBps, DEFAULT_MAX_DISAGREE_BPS, type ReferenceResult } from '@tare/reference';
+import { independentReference, disagreementBps, DEFAULT_MAX_DISAGREE_BPS, type ReferenceResult } from '@tare/independent';
 import { bookAbi } from './abi';
 import { aggregatorRoutes } from './aggregator';
 import { directRoutes, type DirectRoute } from '@tare/registry';
