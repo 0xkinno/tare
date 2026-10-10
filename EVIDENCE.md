@@ -55,3 +55,7 @@ Settlement transaction: [0xf0e44c2ea0bacd7d473292a8ad8d1fd85a544b539442b427ab59e
 ## Agentic Wallet
 
 Approve [0xdbc1aacbb517cae00028170504e6dcde708c7a6814ff6e642d2e4fe5a5816bc8](https://bscscan.com/tx/0xdbc1aacbb517cae00028170504e6dcde708c7a6814ff6e642d2e4fe5a5816bc8), placeBuy [0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45](https://bscscan.com/tx/0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45), keeper fill [0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d](https://bscscan.com/tx/0xca034f5a82ca44aca76508def94b30ca6827ccd4ac17d309d454ebc91b08c73d). Record: `evidence/mainnet/agentic_wallet.json`.
+
+## Hosted keeper
+
+Live status of the Render service, captured once: `data/keeper/hosted_status.json`. Service config: `render.yaml`. Keepalive: `.github/workflows/keepalive.yml`. Supabase tables from `services/keeper/schema.sql`: `keeper_actions`, `orders_cache`, `quotes`, `sessions`.

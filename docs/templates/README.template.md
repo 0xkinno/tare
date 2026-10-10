@@ -256,7 +256,7 @@ The combination that looks like it should not work but does: **the RWA reference
 | Verifier PASS on every filled order | Real, outputs in `evidence/mainnet` |
 | Web app, MCP, A2A, judge path | Real, deployed |
 | Fill through the aggregator route with the book as taker | Real, order {{ev.aggregatorOrder}} |
-| Keeper running on a hosted worker | Not yet: ran on the author's machine; a Render blueprint is included |
+| Keeper running on a hosted service | Real: Render, Singapore, free web service kept awake by a self-ping and a scheduled workflow; live status at `/api/agent/keeper`, snapshot in `data/keeper/hosted_status.json` |
 | Agentic Wallet mainnet run | Real: order 7 placed through `baw`, filled by the keeper |
 | Paid certificate settlement | Real; pay-to is the owner wallet from onboarding, so the keeper does not earn yet |
 | ERC-8183 completion | Needs the seven day dispute window |
@@ -306,7 +306,7 @@ Copy `.env.example` to `.env.local`. Wallet keys are never needed by the web app
 | Part | Where | How |
 |---|---|---|
 | Web app and API routes | Vercel, Singapore region | Root directory `apps/web`; set the public variables from `.env.example`; the data API refuses US regions |
-| Keeper and recorder | Render background worker, Singapore | `render.yaml` blueprint; add the keeper key and API keys as secrets; set `KEEPER_URL` on the web app |
+| Keeper and recorder | Render web service (free plan), Singapore | `render.yaml` blueprint; add the keeper key and API keys as secrets; set `KEEPER_URL` on the web app; `.github/workflows/keepalive.yml` pings it every ten minutes |
 | Database | Supabase | Run `services/keeper/schema.sql` in the SQL editor |
 | Contracts | BSC mainnet | `cd contracts && forge script script/Deploy.s.sol --rpc-url $BSC_RPC_URL --broadcast --verify` |
 
@@ -326,7 +326,7 @@ docs/         DX log, vendor documentation snapshots, spikes, claims ledger
 
 ## Roadmap
 
-Hosted keeper worker, keeper-owned B402 pay-to for a self-funding loop, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
+Keeper-owned B402 pay-to for a self-funding loop, more issuer wrappers as pools deepen, delivery of order diaries over more channels, and a per-order tolerance written on-chain.
 
 ## Security
 

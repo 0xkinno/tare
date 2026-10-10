@@ -1,10 +1,12 @@
-# Keeper and recorder as a Render background worker in Singapore (the data API refuses US regions).
+# Keeper and recorder as a Render web service in Singapore (the data API refuses US regions).
+# A web service answers /healthz, which lets the free plan be kept awake by the keepalive workflow.
 services:
-  - type: worker
+  - type: web
     name: tare-keeper
     runtime: node
     region: singapore
-    plan: starter
+    plan: free
+    healthCheckPath: /healthz
     buildCommand: corepack enable && pnpm install --no-frozen-lockfile
     startCommand: pnpm exec tsx services/keeper/src/index.ts
     envVars:
@@ -30,5 +32,3 @@ services:
         sync: false
       - key: PUBLIC_WEB_ORIGIN
         value: https://tare-olive.vercel.app
-      - key: PORT
-        value: 8787

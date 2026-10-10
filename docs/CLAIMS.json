@@ -194,6 +194,18 @@
         "evidence/mainnet/verify_order_7.txt"
       ],
       "limitations": "The Agentic Wallet is a separate address from the owner test wallet; cents in size."
+    },
+    {
+      "id": "C19",
+      "claim": "The keeper runs on a hosted service (Render, Singapore) and the web app reads its live status.",
+      "status": "SUPPORTED",
+      "reproduce": "curl https://tare-keeper.onrender.com/api/agent/keeper ; curl https://tare-olive.vercel.app/api/agent/keeper (source: live)",
+      "evidence": [
+        "data/keeper/hosted_status.json",
+        "render.yaml",
+        ".github/workflows/keepalive.yml"
+      ],
+      "limitations": "Free plan; kept awake by a self-ping and a scheduled workflow. The mainnet autonomy run (C11) predates the hosted deployment."
     }
   ]
 }

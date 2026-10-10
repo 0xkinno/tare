@@ -23,7 +23,7 @@ Author: 0xkinno.
 ### Open, and why
 - Paid certificates settle through B402, but the pay-to address from onboarding is the owner wallet, not the keeper.
 - ERC-8183 job settlement: seven day dispute window; state is Submitted.
-- Keeper hosting on a worker: ran locally for the evidence.
+- Keeper hosting: runs on Render (Singapore, free plan) with a self-ping and a scheduled keepalive workflow; the web app reads its live status.
 - Supabase tables: apply `services/keeper/schema.sql` in the project SQL editor so the recorder can write.
 - Demo video: the author's.
 

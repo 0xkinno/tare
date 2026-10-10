@@ -74,7 +74,7 @@ async function pass(): Promise<void> {
       }
     }
     stats.pass();
-    if (telegram) await telegram.pollOnce().catch((err) => stats.error(`telegram: ${String(err)}`));
+    if (telegram) await telegram.pollOnce().catch((err) => stats.error(`telegram: ${String(err)}${err instanceof Error && err.cause ? ` (${String(err.cause)})` : ''}`));
   } catch (err) {
     stats.error(err instanceof Error ? err.message : String(err));
   }
@@ -94,6 +94,11 @@ createServer((req, res) => {
   res.statusCode = 404;
   res.end('{"error":"not found"}');
 }).listen(PORT);
+
+// A free Render web service sleeps after 15 minutes without inbound traffic. Hitting our own public URL while awake
+// keeps the loop alive; the scheduled workflow in .github/workflows/keepalive.yml wakes it if it ever slept.
+const selfUrl = env('RENDER_EXTERNAL_URL');
+if (selfUrl) setInterval(() => { void fetch(`${selfUrl.replace(/\/$/, '')}/healthz`, { signal: AbortSignal.timeout(10_000) }).catch(() => undefined); }, 10 * 60_000);
 
 await resolveUnresolved();
 void (async () => { for (;;) { await recorder.cycle().catch((e) => stats.error(`recorder: ${String(e)}`)); await new Promise((r) => setTimeout(r, 60_000)); } })();
