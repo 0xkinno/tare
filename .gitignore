@@ -20,3 +20,8 @@ logs/
 
 .vercel
 .vercel
+
+# demo video (kept in reference/, never committed)
+video/out/
+*.mp4
+*.wav

@@ -53,7 +53,7 @@ On BNB Chain she finds **three tokens called Nvidia** from three issuers. She th
 |---|---|
 | **One ticker, three units** | One token is not one share. It is {{units.maxUnitPct}} percent more than a share at most today, and two tokens of the same ticker differ by up to {{units.maxOndoVsBstocksBps}} bps from unit alone, before any premium exists. It moves with every dividend and split, and without a transfer event. |
 | **A reference that is not a second opinion** | {{reference.bstocksWithoutStockPrice}} of {{reference.bstocksTotal}} bStocks have no equity reference in the public response; for Ondo the "reference" is the same feed multiplied by the unit. |
-| **The clock stops** | New York is closed {{weekendSharePct}} percent of the week. Tokens keep trading against a reference that is hours or days old. |
+| **The clock stops** | The regular New York session covers only {{regularSharePct}} percent of the week, and the weekend alone is {{weekendSharePct}} percent. Tokens keep trading against a reference that is hours or days old. |
 | **Quotes break** | {{brokenTotal}} of {{brokenObservations}} recorded quotes were more than five percent from the equity reference. |
 
 Every product that buys for her either asks her to sign each trade, or takes her money into a vault. Tare is a third answer: **a bank standing order crossed with a limit order, counted in shares, enforced by BNB Chain instead of by a company she has to trust.**

@@ -56,7 +56,7 @@ One ticker, three units, and no trustworthy price.
   taker, the keyed `quote` returns LiquidMesh routes with `executionMode` SWAP for bStocks and for Ondo wrappers at
   every size tested, and a built `swap` whose sender is the book (`data/discovery/e6_contract_taker.json`,
   `e6_swap_build.json`). xStocks return `Insufficient liquidity` at every size. Ondo has a 5 USD minimum order.
-- **The NYSE is closed {{weekendSharePct}} percent of the week** (hourly bins, holidays not modelled). In those hours
+- **The regular NYSE session covers {{regularSharePct}} percent of the week, and the weekend alone is {{weekendSharePct}} percent** (hourly bins, holidays not modelled). In those hours
   every equity reference is hours or days old while tokens keep trading.
 
 ## 3. Evidence
@@ -154,7 +154,7 @@ forge test --match-test test_unitJump   # contracts/test/TareBook.t.sol
 ## Thesis
 
 Because tokenized stocks on BSC are wrapped by different issuers that each carry their own unit mechanism, against
-an equity reference that is absent for bStocks and stale for {{weekendSharePct}} percent of the week, Tare can give a buyer the most real shares per dollar and make that
+an equity reference that is absent for bStocks and stale for at least {{weekendSharePct}} percent of the week, Tare can give a buyer the most real shares per dollar and make that
 promise survive a unit change on-chain, for first-time savers who cannot stay awake to sign.
 
 ## Final gate
