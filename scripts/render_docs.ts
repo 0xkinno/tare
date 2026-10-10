@@ -19,7 +19,20 @@ const bqs = disc.brokenQuotes as { flaggedTotal?: number; observations?: number 
 const brokenTotal = bqs?.flaggedTotal ?? 0;
 const brokenObs = bqs?.observations ?? 0;
 
+const fillsByOrder: Record<string, string> = {};
+for (const f of ((auto.fillDetails as { orderId: string; txHash: string }[] | undefined) ?? [])) fillsByOrder[f.orderId] = f.txHash;
+const rcj = J<Record<string, string>>('evidence/mainnet/refusal_and_cancel.json') ?? {};
+const journal = existsSync('data/keeper/journal.jsonl') ? readFileSync('data/keeper/journal.jsonl', 'utf8').split(String.fromCharCode(10)).filter(Boolean).map((l) => JSON.parse(l) as { orderId: string; status: string; txHash?: string; venue?: string }) : [];
+const aggFill = journal.filter((e) => e.status === 'CONFIRMED' && e.venue?.startsWith('AGGREGATOR')).pop();
+const ev = {
+  buy0: fillsByOrder['0'] ?? '', buy1: fillsByOrder['1'] ?? '', sell: fillsByOrder['2'] ?? '',
+  refusal: rcj.manualFillRevertTx ?? '', cancel: rcj.cancelTx ?? '', refusalOrder: rcj.refusalOrderId ?? '',
+  aggregator: aggFill?.txHash ?? '', aggregatorOrder: aggFill?.orderId ?? '',
+  identity: String((identity as { txHash?: string }).txHash ?? ''), job: String((job as { jobId?: string }).jobId ?? ''),
+};
+
 const ctx: Record<string, unknown> = {
+  ev,
   discovery: disc, ...disc, autonomy: auto, counter, agg, job, brokenTotal, brokenObservations: brokenObs,
   forge: { passed: forgeMatch?.[1] ?? '–', failed: forgeMatch?.[2] ?? '–' },
   unitTests: unit?.total ?? '–',

@@ -7,6 +7,7 @@
   "scripts": {
     "discover": "node scripts/discovery/run_all.mjs",
     "discover:render": "node scripts/discovery/summary.mjs && node scripts/discovery/render_discovery.mjs",
+    "tare": "tsx scripts/verify_cli.ts",
     "discover:record": "node scripts/discovery/recorder.mjs",
     "discover:history": "node scripts/discovery/e8_unit_history.mjs"
   },

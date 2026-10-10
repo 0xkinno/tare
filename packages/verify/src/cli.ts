@@ -23,14 +23,15 @@ async function main(): Promise<number> {
   }
   const order = arg('order');
   const book = arg('book') ?? process.env.NEXT_PUBLIC_TAREBOOK;
-  const rpc = arg('rpc') ?? process.env.BSC_RPC_URL ?? 'https://bsc-dataseed1.defibit.io';
+  const clean = (v?: string) => v?.split(/\s+#/)[0]?.trim() || undefined;
+  const rpc = arg('rpc') ?? clean(process.env.BSC_LOGS_RPC_URL) ?? 'https://bsc.rpc.blxrbdn.com';
   if (!order || !book) {
     console.error('usage: tare verify --order <id> --book <address> [--rpc <logs url>] [--state-rpc <archive url>] [--from-block <n>]\n       tare verify --quote <snapshot.json>');
     return 2;
   }
-  const fb = arg('from-block');
-  const stateRpc = arg('state-rpc') ?? process.env.BSC_ARCHIVE_RPC_URL;
-  const ev = await gatherFill(client(rpc), book as `0x${string}`, BigInt(order), fb ? BigInt(fb) : undefined, stateRpc ? client(stateRpc.split(/\s+#/)[0]!.trim()) : undefined);
+  const fb = arg('from-block') ?? clean(process.env.NEXT_PUBLIC_TAREBOOK_BLOCK);
+  const stateRpc = arg('state-rpc') ?? clean(process.env.BSC_ARCHIVE_RPC_URL);
+  const ev = await gatherFill(client(rpc), book as `0x${string}`, BigInt(order), fb ? BigInt(fb) : undefined, stateRpc ? client(stateRpc) : undefined);
   return print(`order ${order} on ${book}`, verifyFill(ev)) ? 0 : 1;
 }
 

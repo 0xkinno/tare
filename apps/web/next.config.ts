@@ -8,6 +8,10 @@ const config: NextConfig = {
   outputFileTracingIncludes: { '/**': ['../../data/**/*.json', '../../data/**/*.jsonl', '../../docs/CLAIMS.json', '../../evidence/**/*'] },
   transpilePackages: ['@tare/kernel', '@tare/registry', '@tare/binance', '@tare/verify'],
   poweredByHeader: false,
+  // Dot-prefixed route folders are not served reliably by the App Router; the well-known path is rewritten.
+  async rewrites() {
+    return [{ source: '/.well-known/agent-card.json', destination: '/api/agent-card' }];
+  },
   reactStrictMode: true,
   images: { remotePatterns: [{ protocol: 'https', hostname: 'bin.bnbstatic.com' }, { protocol: 'https', hostname: 'images.unsplash.com' }] },
   webpack: (cfg) => {

@@ -82,7 +82,6 @@ export default async function Landing() {
           <figure className="overflow-hidden rounded-[var(--radius-card)] bg-paper-3 shadow-[var(--shadow-lift)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="https://images.unsplash.com/photo-1569706971306-de5d78f6418e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1400" alt="A city at night seen from above, lit windows and streets" className="aspect-[4/3] w-full object-cover" loading="lazy" />
-            <figcaption className="px-4 py-2 font-mono text-[11px] text-graphite">Photo: Namnso Ukpanah, Unsplash</figcaption>
           </figure>
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-graphite">Amara&apos;s Saturday</p>

@@ -53,7 +53,10 @@ async function callTool(name: string, args: Json) {
       const book = process.env.NEXT_PUBLIC_TAREBOOK as `0x${string}` | undefined;
       if (!book) return err('TareBook is not deployed yet');
       if (typeof args.orderId !== 'number' || !Number.isInteger(args.orderId)) return err('orderId must be an integer');
-      const ev = await gatherFill(verifyClient(process.env.BSC_RPC_URL ?? 'https://bsc-dataseed1.defibit.io'), book, BigInt(args.orderId));
+      const clean = (v?: string) => v?.split(/\s+#/)[0]?.trim() || undefined;
+      const from = process.env.NEXT_PUBLIC_TAREBOOK_BLOCK ? BigInt(process.env.NEXT_PUBLIC_TAREBOOK_BLOCK) : undefined;
+      const state = clean(process.env.BSC_ARCHIVE_RPC_URL);
+      const ev = await gatherFill(verifyClient(clean(process.env.BSC_LOGS_RPC_URL) ?? 'https://bsc.rpc.blxrbdn.com'), book, BigInt(args.orderId), from, state ? verifyClient(state) : undefined);
       return text(verifyFill(ev));
     }
     default:

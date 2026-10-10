@@ -1,16 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { EditionBanner } from './EditionBanner';
 
-const LINKS: [string, string][] = [['Shelf', '/app'], ['Orders', '/app/orders'], ['Agent', '/app/agent'], ['Proof', '/proof']];
+const LINKS: [string, string][] = [['Shelf', '/app'], ['Orders', '/app/orders'], ['Agent', '/app/agent'], ['Proof', '/proof'], ['Judge path', '/judge']];
+
+/** The Shelf owns /app and the ticker pages; every other link owns its own prefix. */
+const isActive = (path: string, href: string): boolean => (href === '/app' ? path === '/app' || path.startsWith('/app/t/') : path === href || path.startsWith(`${href}/`));
 
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const path = usePathname() ?? '/';
   return (
     <>
       <motion.header
@@ -24,11 +29,19 @@ export function Nav() {
             <span className="size-3 rounded-[4px] bg-net shadow-[0_0_14px_var(--color-net)]" /> tare
           </Link>
           <div className="hidden items-center gap-1 rounded-[14px] bg-white/5 p-1 text-sm md:flex">
-            {LINKS.map(([l, h]) => (
-              <Link key={h} href={h} className="rounded-[10px] px-3 py-1.5 text-[#F4EFE5]/80 transition hover:bg-white/10 hover:text-[#F4EFE5]">
-                {l}
-              </Link>
-            ))}
+            {LINKS.map(([l, h]) => {
+              const on = isActive(path, h);
+              return (
+                <Link
+                  key={h}
+                  href={h}
+                  aria-current={on ? 'page' : undefined}
+                  className={`rounded-[10px] px-3 py-1.5 transition ${on ? 'bg-white/15 text-[#F4EFE5] shadow-[0_0_0_1px_rgba(244,239,229,.35),0_0_18px_rgba(0,176,122,.45)]' : 'text-[#F4EFE5]/80 hover:bg-white/10 hover:text-[#F4EFE5]'}`}
+                >
+                  {l}
+                </Link>
+              );
+            })}
           </div>
           <div className="flex items-center gap-2">
             <WalletButton />
@@ -39,11 +52,20 @@ export function Nav() {
         </nav>
         {open && (
           <div className="mt-2 grid gap-1 rounded-[var(--radius-capsule)] bg-[#16130E]/95 p-2 text-[#F4EFE5] md:hidden">
-            {LINKS.map(([l, h]) => (
-              <Link key={h} href={h} onClick={() => setOpen(false)} className="rounded-[12px] px-3 py-2 hover:bg-white/10">
-                {l}
-              </Link>
-            ))}
+            {LINKS.map(([l, h]) => {
+              const on = isActive(path, h);
+              return (
+                <Link
+                  key={h}
+                  href={h}
+                  onClick={() => setOpen(false)}
+                  aria-current={on ? 'page' : undefined}
+                  className={`rounded-[12px] px-3 py-2 ${on ? 'bg-white/15 shadow-[0_0_0_1px_rgba(244,239,229,.35),0_0_18px_rgba(0,176,122,.45)]' : 'hover:bg-white/10'}`}
+                >
+                  {l}
+                </Link>
+              );
+            })}
           </div>
         )}
       </motion.header>

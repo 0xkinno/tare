@@ -152,14 +152,15 @@
     },
     {
       "id": "C15",
-      "claim": "The Trading API returns executable swap calldata with a contract as taker for bStocks and for Ondo wrappers; xStocks return no liquidity.",
+      "claim": "The Trading API returns executable swap calldata with the book as taker for bStocks and for Ondo wrappers, and a standing order was filled on BSC mainnet through that route; xStocks return no liquidity.",
       "status": "SUPPORTED",
       "reproduce": "npx tsx scripts/discovery/e6_keyed.ts",
       "evidence": [
         "data/discovery/e6_contract_taker.json",
-        "data/discovery/e6_swap_build.json"
+        "data/discovery/e6_swap_build.json",
+        "evidence/mainnet/verify_order_5.txt"
       ],
-      "limitations": "Ondo quotes enforce a 5 USD minimum order; Ondo calldata was built, not sent. Documentation says Ondo is RFQ only."
+      "limitations": "Ondo quotes enforce a 5 USD minimum order, so the mainnet fill used a bStocks wrapper; Ondo calldata was built, not sent. Documentation says Ondo is RFQ only."
     },
     {
       "id": "C16",
@@ -170,6 +171,17 @@
         "data/discovery/b402_supported.json"
       ],
       "limitations": "The API key has no B402 permission yet (code 40104). The endpoint is implemented and returns a typed unconfigured state."
+    },
+    {
+      "id": "C17",
+      "claim": "The web app works end to end with a connected wallet: buy now, standing buy filled by the keeper, standing sell, cancel, holdings.",
+      "status": "SUPPORTED",
+      "reproduce": "cd apps/web && BASE_URL=https://tare-olive.vercel.app npx playwright test journey.spec.ts --project=desktop",
+      "evidence": [
+        "apps/web/e2e/journey.spec.ts",
+        "evidence/mainnet/verify_order_5.txt"
+      ],
+      "limitations": "The test signs with the owner test wallet through an injected provider bridge in headless Chromium; mainnet transactions of cents."
     }
   ]
 }

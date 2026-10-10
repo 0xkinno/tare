@@ -69,9 +69,9 @@ Result: 18 passed, 0 failed. Log: `evidence/fork/forge_test_full.txt`.
 |---|---|---|
 | Fills | 3 | needs an owner signature for each: 3 |
 | Fills while New York closed | 3 | n/a |
-| Recorded quotes replayed | 4,360 | same set |
-| Quotes over 3 percent from reference | n/a | 1,744 |
-| Quotes over 5 percent from reference | 1,744 | 1,744 |
+| Recorded quotes replayed | 8,200 | same set |
+| Quotes over 3 percent from reference | n/a | 3,266 |
+| Quotes over 5 percent from reference | 3,266 | 3,266 |
 
 The replay does not show the on-chain floor catching more bad quotes than the off-chain guard. What it adds is that it holds while nobody is awake to sign.
 

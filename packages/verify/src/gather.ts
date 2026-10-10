@@ -21,7 +21,14 @@ export function client(rpc: string): PublicClient {
 export async function gatherFill(c: PublicClient, book: `0x${string}`, orderId: bigint, fromBlock?: bigint, stateClient?: PublicClient): Promise<FillEvidence> {
   const sc = stateClient ?? c; // historical state reads (archive) may use a different endpoint than log reads
   const latest = await c.getBlockNumber();
-  const logs = await c.getLogs({ address: book, event: filled, args: { id: orderId }, fromBlock: fromBlock ?? latest - 4999n, toBlock: latest });
+  // Public log endpoints cap the range, so scan backwards in windows until the fill is found or the floor is reached.
+  const WINDOW = 4999n;
+  const floor = fromBlock ?? (latest > 200_000n ? latest - 200_000n : 0n);
+  let logs: Awaited<ReturnType<typeof c.getLogs<typeof filled>>> = [];
+  for (let hi = latest; hi > floor && logs.length === 0; hi -= WINDOW) {
+    const lo = hi - WINDOW + 1n > floor ? hi - WINDOW + 1n : floor;
+    logs = await c.getLogs({ address: book, event: filled, args: { id: orderId }, fromBlock: lo, toBlock: hi });
+  }
   const first = logs[0];
   if (!first || first.args.wrapper === undefined) throw new Error(`no OrderFilled log for order ${orderId} in the scanned window`);
   const bn = first.blockNumber;

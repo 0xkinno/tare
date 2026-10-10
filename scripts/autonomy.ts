@@ -13,7 +13,9 @@ const place = JSON.parse(readFileSync('data/autonomy/placement.json', 'utf8')) a
 const ref = existsSync('evidence/mainnet/refusal_and_cancel.json') ? (JSON.parse(readFileSync('evidence/mainnet/refusal_and_cancel.json', 'utf8')) as Record<string, string>) : null;
 const journal = readFileSync('data/keeper/journal.jsonl', 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as J);
 
-const confirmed = journal.filter((e) => e.status === 'CONFIRMED' && e.txHash);
+// the autonomy run is the three orders placed together in placement.json; later orders (UI journey) are separate evidence
+const runIds = new Set(Array.from({ length: Number((JSON.parse(readFileSync('data/autonomy/placement.json', 'utf8')) as { nextId: string }).nextId) }, (_, i) => String(i)));
+const confirmed = journal.filter((e) => e.status === 'CONFIRMED' && e.txHash && runIds.has(e.orderId));
 const fills = [];
 const USER = process.env.USER_ADDRESS as `0x${string}`;
 for (const e of confirmed) {

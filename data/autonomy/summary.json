@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T03:27:55.185Z",
+  "generatedAt": "2026-10-10T06:40:41.104Z",
   "book": "0xa440a217B64c01659A1c911b795371C3C2e1A13e",
   "ordersPlaced": 3,
   "placedAt": "2026-10-10T02:35:40.254Z",
@@ -14,7 +14,7 @@
     "126748918": 5
   },
   "refusalsLogged": 1,
-  "refusalPassesLogged": 90,
+  "refusalPassesLogged": 475,
   "onChainRefusal": {
     "orderId": "3",
     "revertTx": "0x85047053106d890df200de6eba5f82e1064941d8228543234b29287f8b0483a9",
@@ -81,9 +81,9 @@
   "replayArm": {
     "guard": "off-chain guard, 3 percent over reference, requires a live owner signature for every fill",
     "fillsThatRequiredAnOwnerSignature": 3,
-    "quotesReplayed": 4360,
-    "quotesOver3Pct": 1744,
-    "quotesOver5Pct": 1744,
+    "quotesReplayed": 8200,
+    "quotesOver3Pct": 3266,
+    "quotesOver5Pct": 3266,
     "note": "Both approaches stop the same broken quotes above their thresholds. The on-chain floor additionally holds while nobody is watching; the replay does not show it catches more bad quotes."
   }
 }

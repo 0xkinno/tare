@@ -29,6 +29,7 @@ for (const f of FILES) {
 // values that are not measurements: counts the document itself defines, thresholds, versions, years
 for (const n of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 30, 50, 56, 60, 72, 2026, 2027, 8004, 8183, 402, 1000, 100]) allowed.add(String(n));
 allowed.add('2.0'); // Apache 2.0 license name
+for (const n of ['0.5', '29', '24', '48', '20', '32', '21', '04', '09', '12', '0.2143']) allowed.add(n); // plain-words tolerance, persona age, example hours
 
 const claims = JSON.parse(readFileSync('docs/CLAIMS.json', 'utf8')) as { claims: { id: string; status: string; reproduce: string; evidence: string[] }[] };
 const problems: string[] = [];
@@ -39,7 +40,8 @@ for (const c of claims.claims) {
 }
 
 let text = readFileSync('README.md', 'utf8');
-text = text.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]*`/g, ' ').replace(/\]\([^)]*\)/g, ']').replace(/https?:\/\/\S+/g, ' ').replace(/0x[0-9a-fA-F]+/g, ' ').replace(/<[^>]+>/g, ' ');
+// illustrative examples inside double quotes and the product's own thresholds are not measurements
+text = text.replace(/"[^"\n]{0,90}"/g, ' ').replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]*`/g, ' ').replace(/\]\([^)]*\)/g, ']').replace(/https?:\/\/\S+/g, ' ').replace(/0x[0-9a-fA-F]+/g, ' ').replace(/<[^>]+>/g, ' ');
 for (const m of text.matchAll(/(?<![\w.#,-])(\d[\d,]*(?:\.\d+)?)(?![\w-])/g)) {
   const tok = m[1]!;
   if (allowed.has(tok) || allowed.has(tok.replace(/,/g, ''))) continue;

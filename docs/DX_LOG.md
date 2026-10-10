@@ -92,3 +92,9 @@ Times below are approximate to the minute, reconstructed from file timestamps an
 - 04:30Z. Vercel `sin1` reaches the public RWA endpoints; the default US region is refused by policy, so every
   route that calls the data API pins `preferredRegion = ['sin1', 'hkg1']`.
 - 04:40Z. Vercel refuses to deploy a Next.js version with a published advisory (`15.1.3`); 15.5.x deploys.
+- 06:40Z. A standing buy placed from the web app was filled by the keeper through the aggregator route
+  (`AGGREGATOR_LiquidMesh`, order 5): the first mainnet fill with the book as taker through the Trading API.
+- 06:41Z. App Router: a route folder named `.well-known` returned 404 on the deployment; the agent card now lives
+  under `/api/agent-card` with a rewrite from the well-known path.
+- 06:45Z. Server render of the wallet SDK threw `indexedDB is not defined` and, on one route, turned into a 500.
+  Connectors are now created on the client only.

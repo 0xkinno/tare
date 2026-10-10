@@ -41,3 +41,9 @@ Verifier output per order: `evidence/mainnet/verify_order_0.txt`, `_1`, `_2`. Ow
 | ERC-8183 job id | 56961 (SUBMITTED) |
 | Job manifest hash | `0x2ded7e54931a907cd88aba40b2f3ee17aa32c4b8be477f632b14c680ec593460` |
 | Allowlist of the aggregator router | [0xc04e7c28...](https://bscscan.com/tx/0xc04e7c280a6766f8114d420c061bc391fec8bbfb76cf86039e5ce777a36c56c3) |
+
+## Web journey (headless Chromium, deployed app)
+
+`apps/web/e2e/journey.spec.ts` connected the owner test wallet, bought through the web app, placed a standing buy that
+the keeper filled through the aggregator route (order 5, verifier output `evidence/mainnet/verify_order_5.txt`),
+placed a standing sell with an unreachable floor and cancelled it from the Orders page, then read holdings in shares.

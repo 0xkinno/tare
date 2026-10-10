@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-10T04:45:13.824Z",
-  "gitCommit": "386a477a1493dcb268ff890e2081a8e9f2e821e0",
+  "generatedAt": "2026-10-10T06:47:06.416Z",
+  "gitCommit": "8decc00af34e78ed958a86fad41d38b5c97185a0",
   "workingTreeDirty": true,
   "datasetRanges": {
     "data/discovery/e4_session_basis.jsonl": {
       "from": "2026-10-09T23:50:29.950Z",
-      "to": "2026-10-10T04:44:34.373Z"
+      "to": "2026-10-10T06:46:36.108Z"
     }
   },
   "files": [
@@ -16,8 +16,8 @@
     },
     {
       "file": "data/autonomy/summary.json",
-      "sha256": "86688894b474df920d91855e5e637b53a9b6b1be31a6fe39ca58b5c8350ea14b",
-      "bytes": 2835
+      "sha256": "0ceb6a8f2aeee7f02bab5b3ed2cd3d1ec86c76d8a94e35e13274bc6f9ee3728c",
+      "bytes": 2836
     },
     {
       "file": "data/calibration/weekend_moves.json",
@@ -81,8 +81,8 @@
     },
     {
       "file": "data/discovery/e4_session_basis.jsonl",
-      "sha256": "32833af76645c674b90fa295f713330fc083a3c9b7df0e6bfa90b70bf6d29092",
-      "bytes": 3820437
+      "sha256": "fe66d5ea7d6911f5aad30decdfcfea2257c9c6e811cbc0a4cf7bc422522a8fb8",
+      "bytes": 5400204
     },
     {
       "file": "data/discovery/e5_depth_curves.json",
@@ -121,8 +121,8 @@
     },
     {
       "file": "data/discovery/recorder.log",
-      "sha256": "e60c3e05dbf5b6a1051325fdc5b7682c84b989b3b8d20d20fd65520ffd190c93",
-      "bytes": 20686
+      "sha256": "0f1c74242f6b1743c9a29e9eee68ef45d32e8afa72af0fdc20c75e5c7ae71984",
+      "bytes": 29226
     },
     {
       "file": "data/discovery/summary.json",
@@ -136,8 +136,8 @@
     },
     {
       "file": "docs/CLAIMS.json",
-      "sha256": "a33c54e2a269cb355cbf5f05c42af700f1446f0c8640aaa49089d88b45f50acc",
-      "bytes": 7660
+      "sha256": "026e5935210e965d3b427408a5ec4e0829cbec9f8276235086c479be716133db",
+      "bytes": 8437
     },
     {
       "file": "evidence/fork/forge_test_full.txt",
@@ -166,13 +166,13 @@
     },
     {
       "file": "evidence/mainnet/identity.json",
-      "sha256": "c1474436bf3d4b2fe4bacf56031ddb3cb09b1080c5dd48b6771b2ff53aa6ca3e",
-      "bytes": 380
+      "sha256": "2f2c89bf2f16e2c12e760cb12ee03154b0ef41a6d83b1eccff04b5efce9dda9a",
+      "bytes": 456
     },
     {
       "file": "evidence/mainnet/ledger.json",
-      "sha256": "539451ebeef8b9ac110abbb797e5a135fd782682cb50d9accb525db5494f8475",
-      "bytes": 1418
+      "sha256": "0cf508781fe9bb6110e5dd1a63ff9e477e72e5a4bacec9a8fdff6d1c3ce2ced4",
+      "bytes": 1482
     },
     {
       "file": "evidence/mainnet/refusal_and_cancel.json",
@@ -193,6 +193,11 @@
       "file": "evidence/mainnet/verify_order_2.txt",
       "sha256": "8a6516dc322a4fbf28c150e78c5ee94d57faff334da65ff86bc0e678b2223fab",
       "bytes": 809
+    },
+    {
+      "file": "evidence/mainnet/verify_order_5.txt",
+      "sha256": "3887e4a765a0a5c39d498f9928e19867b261988b3b766dcaf9f44a09a1268459",
+      "bytes": 791
     },
     {
       "file": "packages/registry/src/wrappers.generated.json",
