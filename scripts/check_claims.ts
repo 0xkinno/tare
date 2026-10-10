@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const FILES = ['data/discovery/summary.json', 'data/autonomy/summary.json', 'data/counterfactual/summary.json', 'data/counterfactual/aggregator_snapshot.json', 'data/tests/unit_summary.json', 'evidence/mainnet/erc8183_job.json', 'evidence/mainnet/identity.json', 'evidence/fork/forge_test_full.txt'];
+const FILES = ['data/discovery/summary.json', 'data/autonomy/summary.json', 'data/counterfactual/summary.json', 'data/counterfactual/aggregator_snapshot.json', 'data/tests/unit_summary.json', 'evidence/mainnet/erc8183_job.json', 'evidence/mainnet/identity.json', 'evidence/fork/forge_test_full.txt', 'data/live/summary.json', 'data/reference/snapshot.json', 'evidence/mainnet/agentic_payment.json', 'evidence/mainnet/agentic_cancel.json', 'data/discovery/e13_api_depth.json'];
 const allowed = new Set<string>();
 const add = (n: number) => {
   if (!Number.isFinite(n)) return;

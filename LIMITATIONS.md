@@ -13,3 +13,10 @@ Said plainly. Nothing here is hidden in the README.
 9. **History.** Unit history of bStocks multipliers beyond the scanned window is not reconstructed; the oracle log scan covers the recent window only.
 10. **Calendar.** NYSE holidays and half days are encoded for 2026 and 2027 and cross-checked against the API session; they are not a trading calendar service.
 11. **Not advice.** Tokenized stocks are certificates or tracker tokens, not shares. Read the issuer terms.
+12. **The independent reference is a public endpoint without a service level.** Yahoo Finance chart and Nasdaq quote can rate-limit or time out; both failing makes the keeper wait and the planner decline (fail closed). In the snapshot one of ten tickers could not be confirmed because of a timeout. A live `REFERENCE_DISAGREE` has not occurred, so the refusal is proven by tests.
+13. **Top-liquidity reports no liquidity in USD.** The endpoint returns pools and venues for these tokens but `liquidityUsd` is null, so the Depth column shows counts, not dollars.
+14. **Portfolio cost basis is per token.** The Address Portfolio API gives an average buy price per token; Tare divides by the unit read now, so a unit change after the buy moves the displayed cost basis.
+15. **Certificates sold is a chain count.** It counts transfers of exactly the certificate price to the pay-to address, so an unrelated transfer of the same amount would be counted.
+16. **The Supabase mirror of keeper decisions needs one migration.** The `detail` column is added by `services/keeper/schema.sql`; until it is run in the SQL editor the mirror writes rows without it.
+17. **Agent Studio is used for identity and the endpoint, not as the runtime.** The managed trial runtime is testnet-only, so the mainnet seller stays self-hosted.
+

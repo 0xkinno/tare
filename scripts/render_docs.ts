@@ -33,9 +33,15 @@ const ev = {
 };
 
 const agentic = J<Record<string, string>>('evidence/mainnet/agentic_wallet.json') ?? {};
+const agenticPay = J<Record<string, string>>('evidence/mainnet/agentic_payment.json') ?? {};
+const agenticCancel = J<Record<string, string>>('evidence/mainnet/agentic_cancel.json') ?? {};
+const reference = J<Record<string, unknown>>('data/reference/snapshot.json') ?? {};
+const live = J<Record<string, unknown>>('data/live/summary.json') ?? {};
+const depthRaw = J<Record<string, { data?: { txHash?: string } }>>('data/discovery/e13_api_depth.json') ?? {};
+const depth = { broadcastTx: depthRaw.broadcast_contract_call?.data?.txHash ?? '' };
 
 const ctx: Record<string, unknown> = {
-  agentic,
+  agentic, agenticPay, agenticCancel, refcheck: reference, live, liveDate: String((live as { asOf?: string }).asOf ?? '').slice(0, 10), depth, uriTx: '0xa35ebc3fe3bea5669ac6b5d40cec918f2b2dd6e88c9a3837b8caa5b9261bbe3a',
   ev, b402tx: ev.b402tx,
   discovery: disc, ...disc, autonomy: auto, counter, agg, job, brokenTotal, brokenObservations: brokenObs,
   forge: { passed: forgeMatch?.[1] ?? '–', failed: forgeMatch?.[2] ?? '–' },

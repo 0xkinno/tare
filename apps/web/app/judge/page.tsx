@@ -7,9 +7,9 @@ import { bscscan } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Judge path' };
 
-interface Entry { kind: 'instant' | 'fill' | 'refusal' | 'sell' | 'cancel' | 'agentic' | 'identity' | 'certificate'; tx: string | null; orderId?: string; note: string; at?: string }
+interface Entry { kind: 'instant' | 'fill' | 'refusal' | 'sell' | 'cancel' | 'agentic' | 'agentic-pay' | 'agentic-cancel' | 'identity' | 'certificate'; tx: string | null; orderId?: string; note: string; at?: string }
 
-const ORDER: Entry['kind'][] = ['fill', 'refusal', 'sell', 'cancel', 'instant', 'agentic', 'identity', 'certificate'];
+const ORDER: Entry['kind'][] = ['fill', 'refusal', 'sell', 'cancel', 'instant', 'agentic', 'agentic-cancel', 'agentic-pay', 'identity', 'certificate'];
 const TITLE: Record<Entry['kind'], string> = {
   fill: 'A real standing order, filled by the keeper',
   refusal: 'A real refusal: ShareFloor on-chain',
@@ -17,6 +17,8 @@ const TITLE: Record<Entry['kind'], string> = {
   cancel: 'A cancel',
   instant: 'An instant buy from the web app',
   agentic: 'The same order from an Agentic Wallet',
+  'agentic-cancel': 'An order cancelled from the Agentic Wallet',
+  'agentic-pay': 'The Agentic Wallet paying for a certificate over x402',
   identity: 'The keeper identity (ERC-8004)',
   certificate: 'A paid certificate (x402)',
 };

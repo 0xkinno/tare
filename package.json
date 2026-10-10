@@ -16,7 +16,8 @@
     "@tare/kernel": "workspace:*",
     "@tare/registry": "workspace:*",
     "@tare/verify": "workspace:*",
-    "viem": "2.21.55"
+    "viem": "2.21.55",
+    "@tare/independent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.9.0",

@@ -29,3 +29,12 @@ Author: 0xkinno.
 
 ### Blockers
 None that stop the build. The items above need an account action by the owner.
+
+### Second round
+- Independent equity reference with `REFERENCE_DISAGREE`, fail closed (packages/independent, kernel, keeper, planner, ticker page).
+- Agentic Wallet: a certificate paid over x402 and an order placed and cancelled through baw.
+- Agent Studio: `bag` scaffold, ERC-8004 #370049 linked, A2A endpoint on the Render agent card.
+- API depth: gas-limit, transaction-detail, top-liquidity, address portfolio, broadcast.
+- Whole-universe catalogue on the Shelf; live counters on the landing page, judge path and README.
+- Open: the Supabase `detail` column migration; the owner approves which proposed orders to place; the repository About text.
+

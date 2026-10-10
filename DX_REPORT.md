@@ -73,6 +73,28 @@ Everything below comes from calls I made myself. The raw, timestamped notes are 
 - Self-serve B402 onboarding, and an endpoint that tells you which domains a key holds.
 - An Agentic Wallet sign-in that doesn't expire in five minutes, or at least says when it has.
 
+## 8. Second round: the endpoints I had not used
+
+These came from wiring five more endpoints into the product. Raw notes are in the second-round section of `docs/DX_LOG.md`.
+
+- **A missing `value` looks like a bad request, and my keeper hid it.** `simulate` and `gas-limit` need `evmTx.value`. I left it out, got `40001 Parameter error`, and the keeper fell back to `eth_call` without complaint, so every fill I recorded says `ETH_CALL`. I only saw it when I added `gas-limit`. The error should name the field, and my fallback should have been loud.
+- **Timestamp errors are a VPN problem too.** Both gas endpoints returned `401` with `Timestamp outside recv_window`. The message includes the server time, which is helpful, but a client that signs, waits three seconds on a VPN and then sends is outside the window. I retry with a fresh timestamp.
+- **Revert data arrives as a string inside a string.** A reverting `gas-limit` call returns `40435` with `{"code":3,"message":"execution reverted: 0x30cd7471"}` as the `msg`. Usable, but it is JSON inside JSON.
+- **Parameter names change between modules.** Balances take `address`, portfolio takes `walletAddress`, top-liquidity takes `tokenContractAddress`. Each failure was a `40001` that named the field, which is good, but a table of the names per endpoint would have saved a round of guessing.
+- **Top-liquidity has no dollar figure for these tokens.** It lists pools and venues, and `liquidityUsd` is null for every NVDAB pool. I show pool counts and venue names and say so.
+- **Portfolio PnL is per token.** The average buy price is per token, so a cost basis per share needs the unit, which the portfolio API does not have. Zeros come back for tokens the wallet never held, with `isPnlSupported: true`.
+- **Broadcast works for contract calls.** The docs show a swap. A locally signed `approve(…, 0)` went through and mined. That made it safe to let the keeper relay fills through it, with the RPC as the fallback.
+- **x402 from an agent wallet was smooth.** The skill's reference and the CLI agreed, the 402 body went in unedited, and a USDT-only wallet could pay because the Permit2 approve was sponsored. The one thing I had to get right was comparing the replayed `accepted` entry without depending on key order.
+- **B402 reports more payment options than the docs suggest.** `supported` lists `permit2-exact` for USDT, USDC and WLFI next to the United Stables `eip3009` kind, so a merchant can take USDT. The 402 body now offers both.
+- **The Studio CLI has a name trap.** `npm view bag` is an unrelated package. The right call is `npx -p @bnbagent/studio-cli bag`. After that `bag erc8004 show` and `update-endpoint` were direct, apart from the audit line printing a null transaction hash.
+
+### What I would add to section 6
+
+7. Name the required fields in `40001` for `evmTx` (`value`).
+8. Return a dollar figure in `top-liquidity`, or say it is not available for tokenized equities.
+9. Put the parameter names for every module in one table.
+10. Put a contract-call example next to the swap example for `broadcast-transaction`.
+
 ## Reproduce
 
 ```bash

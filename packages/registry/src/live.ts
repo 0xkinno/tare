@@ -57,7 +57,7 @@ async function countCertificates(client: PublicClient, o: Required<Pick<LiveOpti
   while (from <= head) {
     const to = from + STEP > head ? head : from + STEP;
     const logs = await client.getLogs({ address: [U, USDT], event: TRANSFER, args: { to: o.payTo }, fromBlock: from, toBlock: to });
-    count += logs.filter((l) => l.args.value === o.priceWei && l.args.from?.toLowerCase() !== o.payTo.toLowerCase()).length;
+    count += logs.filter((l) => l.args.value === o.priceWei).length;
     from = to + 1n;
   }
   certCache.set(key, { upTo: head, count });

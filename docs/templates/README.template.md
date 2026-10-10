@@ -126,6 +126,10 @@ Real transactions on BNB Smart Chain, cents in size, recorded in [`EVIDENCE.md`]
 | An order placed from the web app and filled by the keeper through the aggregator route | [{{ev.aggregator}}](https://bscscan.com/tx/{{ev.aggregator}}) |
 | An order placed from the Binance Agentic Wallet (`baw` preview, then execute) and filled by the keeper | [{{agentic.placeBuyTx}}](https://bscscan.com/tx/{{agentic.placeBuyTx}}) |
 | A cancel (funds never left the wallet) | [{{ev.cancel}}](https://bscscan.com/tx/{{ev.cancel}}) |
+| The Agentic Wallet paid for a certificate over x402: `baw x402-payment preview`, `sign`, replay (USDT by permit2-exact) | [{{agenticPay.settlementTx}}](https://bscscan.com/tx/{{agenticPay.settlementTx}}) |
+| An order placed and cancelled from the Agentic Wallet with `baw contract-call preview` then `execute` (order {{agenticCancel.orderId}}) | [{{agenticCancel.cancelTx}}](https://bscscan.com/tx/{{agenticCancel.cancelTx}}) |
+| A keeper-signed contract call relayed through the Transaction API broadcast endpoint | [{{depth.broadcastTx}}](https://bscscan.com/tx/{{depth.broadcastTx}}) |
+| The keeper's ERC-8004 record now points its A2A endpoint at the agent card on the Render host | [{{uriTx}}](https://bscscan.com/tx/{{uriTx}}) |
 | Keeper identity (ERC-8004 agent #{{agentId}}) | [{{ev.identity}}](https://bscscan.com/tx/{{ev.identity}}) |
 | Certificate job (ERC-8183 job {{ev.job}}, state {{job.status}}) | [`evidence/mainnet/erc8183_job.json`](evidence/mainnet/erc8183_job.json) |
 
@@ -138,6 +142,26 @@ Real transactions on BNB Smart Chain, cents in size, recorded in [`EVIDENCE.md`]
 | Seconds from placing to the first fill | {{autonomy.firstFillSecondsAfterPlacing}} |
 
 The verifier passes every invariant on each fill (`evidence/mainnet/verify_order_*.txt`).
+
+## Where every reference comes from
+
+A share floor needs a price of the stock itself. Tare uses two sources and fails closed when they cannot be reconciled.
+
+| Issuer | What its own API response carries | Reference that sets the floor |
+|---|---|---|
+| **bStocks** | No equity reference: `stockInfo.price` is null for all ten tokens | The ticker's reference: the Ondo equity feed of the same ticker when an Ondo wrapper exists, cross-checked by the independent source. With no Ondo wrapper, the independent source alone sets it. |
+| **Ondo** | The Ondo equity feed (`stockInfo.price`), the same feed the issuer's token follows | That feed, cross-checked by the independent source |
+| **xStocks** | A pool print, which sat up to twenty percent from the equity, so it is never used as a reference | The ticker's reference as above |
+
+The independent source is a public, keyless one: the Yahoo Finance chart endpoint (intraday bars with pre and post market, and daily closes), with the Nasdaq quote endpoint as the fallback. The ticker page prints the source, the timestamp of the print and the last daily close next to the issuer feed, and `/api/plan` and `/api/ticker` return the same fields.
+
+| Rule | What happens |
+|---|---|
+| The two references differ by more than the limit (`REFERENCE_MAX_DISAGREE_BPS`, 200 by default) | The keeper refuses with the typed reason `REFERENCE_DISAGREE`, the planner declines to build calls, and the ticker page says so |
+| The independent source is unavailable and `REFERENCE_REQUIRED` is on (the default) | The keeper waits with `API_DEGRADED` and the planner reports a degraded state; nothing is filled on one opinion |
+| Only the independent source exists | It sets the floor, labelled as the only source |
+
+Measured at render time over the {{refcheck.tickers}} core tickers: {{refcheck.agree}} agree, {{refcheck.disagree}} disagree, {{refcheck.unavailable}} could not be confirmed (a timeout, which would have failed closed). The file is `data/reference/snapshot.json`. The hosted keeper has made {{live.keeper.reference.checks}} reference checks since it started, {{live.keeper.reference.agree}} agreed.
 
 ## The guarantee
 
@@ -215,6 +239,21 @@ Generated from `data/**/summary.json` by `scripts/render_docs.ts`; the full tabl
 
 Tare minus random: {{counter.tareMinusRandomBps}} bps. Tare minus naive on direct pools: {{counter.tareMinusNaiveBps}} bps. With the aggregator the two picks differ in {{agg.differs}} of {{agg.groups}} ticker-size groups, by {{agg.meanTareOverNaiveBps}} bps on average and {{agg.maxTareOverNaiveBps}} bps at most. **The pick matters less than the guarantee, and the files say so.**
 
+### Live counters
+
+Read from the chain, the hosted keeper and Supabase when this file was rendered ({{liveDate}}). The landing page and the judge path show the same figures live.
+
+| Counter | Value | Source |
+|---|---|---|
+| Orders placed on the book | {{live.orders.total}} ({{live.orders.open}} open, {{live.orders.filled}} filled, {{live.orders.cancelled}} cancelled) | `TareBook.nextId` and `orders` |
+| Keeper passes since start | {{live.keeper.passes}} | hosted keeper status |
+| Longest gap between passes | {{live.keeper.longestGapSec}} s | hosted keeper status |
+| Keeper uptime since start | {{live.keeper.uptimeSec}} s | hosted keeper status |
+| Refusals: price above limit | {{live.keeper.refusalsByReason.PREMIUM_ABOVE_LIMIT}} | hosted keeper status |
+| Refusals: references disagreed | {{live.keeper.refusalsByReason.REFERENCE_DISAGREE}} | hosted keeper status |
+| Certificates sold | {{live.certificatesSold.count}} | settled payments counted on-chain |
+| Quotes recorded | {{live.quotesRecorded}} | Supabase `quotes` |
+
 ### Tests
 
 | Suite | Result |
@@ -225,14 +264,19 @@ Tare minus random: {{counter.tareMinusRandomBps}} bps. Tare minus naive on direc
 
 ## How the Binance Web3 API is used
 
-| Module | Use in Tare |
-|---|---|
-| RWA Data | Catalogue by provider type, per-token price, multiplier, equity reference and status, market session, company profile |
-| Market | Hourly and daily candles for the weighing chart and the weekend calibration |
-| Trading | Aggregated quotes and swap calldata with the book as taker; fills through it were executed on mainnet |
-| Transaction | Simulation before send; the keeper falls back to `eth_call` and records which source it used |
-| Wallet | Holdings in shares |
-| B402 | The paid certificate endpoint; one payment settled on mainnet |
+| Module | Endpoint | Where it shows up in the product |
+|---|---|---|
+| RWA Data | `stock/detail/list/ai`, `token/dynamic`, `market-status`, `meta` | The Shelf, the ticker page, the session badge, the catalogue |
+| Market | `klines` | The weighing chart and the weekend calibration |
+| Market | `token/top-liquidity` | The Depth column on the ticker page: pool count and venues per wrapper (the endpoint returns `liquidityUsd` as null for these tokens) |
+| Trading | `aggregator/quote`, `aggregator/swap` | Keeper routes with the book as taker; fills through it were executed on mainnet |
+| Transaction | `pre-transaction/simulate` | Simulation before every send; `value` is required, and the keeper records which source answered |
+| Transaction | `pre-transaction/gas-limit` | Keeper gas is the larger of the suggested and the simulated limit, times 1.25; both values are logged in the journal and in `keeper_actions` |
+| Transaction | `pre-transaction/broadcast-transaction` | The keeper signs locally and relays fills through it, with the RPC as the fallback. It accepted a contract call (see the proof table). |
+| Wallet | `balance/all-token-balances-by-address` | Holdings in shares |
+| Wallet | `post-transaction/transaction-detail-by-txhash` | Each fill line in the order diary is reconciled against it on the Orders page |
+| Address Portfolio | `market/portfolio/token/latest-pnl` | Cost basis and PnL in shares on Holdings (the API gives an average buy price per token; Tare divides by the unit) |
+| B402 | `supported`, `verify`, `settle` | The paid certificate: two payment options in the 402 body, two payments settled on mainnet |
 
 The combination that looks like it should not work but does: **the RWA reference, the on-chain unit factor, a Trading API quote and a simulation, ranked in shares** and enforced by a contract that re-reads the unit.
 
@@ -245,7 +289,21 @@ The combination that looks like it should not work but does: **the RWA reference
 | **A2A** | {{origin}}/.well-known/agent-card.json |
 | **ERC-8004 identity** | Keeper registered as agent #{{agentId}} on BSC mainnet |
 | **ERC-8183 commerce** | Job {{ev.job}}: a decomposition certificate, submitted at price zero, settles after the policy dispute window |
-| **x402 / B402** | `/api/certificate` returns `402` with requirements; a payment settled on mainnet: [`{{b402tx}}`](https://bscscan.com/tx/{{b402tx}}) |
+| **x402 / B402** | `/api/certificate` returns `402` with two options (USDT by permit2-exact, United Stables by EIP-3009). One payment by the owner wallet settled in United Stables: [`{{b402tx}}`](https://bscscan.com/tx/{{b402tx}}). One payment by the Agentic Wallet settled in USDT: [`{{agenticPay.settlementTx}}`](https://bscscan.com/tx/{{agenticPay.settlementTx}}). |
+| **Keeper agent card** | [tare-keeper.onrender.com/.well-known/agent-card.json](https://tare-keeper.onrender.com/.well-known/agent-card.json), served by the Render host and linked from the ERC-8004 record |
+
+
+### BNB Agent Studio: managed and self-hosted
+
+The seller is wrapped with the Studio CLI (`@bnbagent/studio-cli`, the `bag` command). Commands and results are in [`docs/AGENT_STUDIO.md`](docs/AGENT_STUDIO.md).
+
+| Part | Who runs it | Why |
+|---|---|---|
+| Project scaffold (`bag init tarecert`, rails B402, faces A2A, MCP and X402, price 0.01 USD, BSC mainnet, destination self) | Studio generates it, we own the code | `studio.toml` states the stack; the keystore stays outside the deploy folder |
+| ERC-8004 identity #{{agentId}} (`bag erc8004 show`, `update-endpoint`) | The registry contract, written with the keeper key | One identity for the keeper; its A2A endpoint points at the Render agent card |
+| ERC-8183 jobs and B402 verify and settle | Managed: the commerce contracts and the B402 facilitator | Escrow and settlement are not ours to run |
+| Keeper, recorder and the agent card | Self-hosted on Render (Singapore) | The Binance API refuses US regions, the key must live on a host we control, and the managed trial runtime is testnet-only and ships the wallet key to the operator |
+| Certificate endpoint and web app | Self-hosted on Vercel (sin1) | Same region constraint, and the certificate reads the live shelf |
 
 ## What is real and what is not
 
@@ -258,7 +316,10 @@ The combination that looks like it should not work but does: **the RWA reference
 | Fill through the aggregator route with the book as taker | Real, order {{ev.aggregatorOrder}} |
 | Keeper running on a hosted service | Real: Render, Singapore, free web service kept awake by a self-ping and a scheduled workflow; live status at `/api/agent/keeper`, snapshot in `data/keeper/hosted_status.json` |
 | Agentic Wallet mainnet run | Real: order 7 placed through `baw`, filled by the keeper |
-| Paid certificate settlement | Real; pay-to is the owner wallet from onboarding, so the keeper does not earn yet |
+| Paid certificate settlement | Real, twice (owner wallet in United Stables, Agentic Wallet in USDT); pay-to is the owner wallet from onboarding, so the keeper does not earn yet |
+| Agentic Wallet pays over x402 and cancels through `baw` | Real, cents in size |
+| Independent equity reference and `REFERENCE_DISAGREE` | Real: unit tests, keeper counters, snapshot. A live disagreement has not occurred, so the refusal is proven by tests, not by a mainnet event |
+| Whole-universe catalogue | Real, read-only: a snapshot of the list endpoint, regenerated by `scripts/build_catalogue.ts` |
 | ERC-8183 completion | Needs the seven day dispute window |
 
 The full list is in [`LIMITATIONS.md`](LIMITATIONS.md).

@@ -59,3 +59,19 @@ Approve [0xdbc1aacbb517cae00028170504e6dcde708c7a6814ff6e642d2e4fe5a5816bc8](htt
 ## Hosted keeper
 
 Live status of the Render service, captured once: `data/keeper/hosted_status.json`. Service config: `render.yaml`. Keepalive: `.github/workflows/keepalive.yml`. Supabase tables from `services/keeper/schema.sql`: `keeper_actions`, `orders_cache`, `quotes`, `sessions`.
+
+## Second round
+
+| What | Evidence |
+|---|---|
+| Independent reference snapshot, ten core tickers | `data/reference/snapshot.json`: nine agree (largest gap 61 bps), one could not be confirmed (timeout, would fail closed) |
+| `REFERENCE_DISAGREE` and fail-closed behaviour | `packages/kernel/test/kernel.test.ts`, `packages/independent/test/reference.test.ts`, `services/keeper/test/keeper.test.ts` (engine level: disagree and unavailable) |
+| Keeper reference counters | `refusalsByReason.REFERENCE_DISAGREE` and `reference` in `/api/agent/keeper`; journal rows carry the source, both prices and the gap |
+| Agentic Wallet pays a certificate | [0x4440411834a87b42a0631fb7354845bbb59b629f8e245e4be9ebd700db196081](https://bscscan.com/tx/0x4440411834a87b42a0631fb7354845bbb59b629f8e245e4be9ebd700db196081), Permit2 approve [0xad527fc2785b4fb847f6f94a5d8a239bef99ce9ecf67c13efc78597ba696a229](https://bscscan.com/tx/0xad527fc2785b4fb847f6f94a5d8a239bef99ce9ecf67c13efc78597ba696a229); record `evidence/mainnet/agentic_payment.json` |
+| Agentic Wallet places and cancels an order (order 8) | approve [0x093617b8...](https://bscscan.com/tx/0x093617b8b814a8d869573a5ec04987e04c398b43319ed58fd005aca7c52ce5dd), placeBuy [0x7e8b9b50...](https://bscscan.com/tx/0x7e8b9b50c2e3a7fda597b1edf3887cedfaa7c9f7f0848d60e588cadb3d034681), cancel [0x32bd1fa6...](https://bscscan.com/tx/0x32bd1fa6c02131300b9d08a13aa61bc475e97a4fa999cc9dcd2d9465952ce877); record `evidence/mainnet/agentic_cancel.json` |
+| Five more API endpoints answered | `data/discovery/e13_api_depth.json` (gas-limit, transaction-detail-by-txhash, top-liquidity, portfolio latest-pnl, broadcast of a contract call) |
+| Broadcast accepted a contract call | [0x46cab928241fdac1d671084a6077f669688e0f4db10c22f770430f4b2b2f8169](https://bscscan.com/tx/0x46cab928241fdac1d671084a6077f669688e0f4db10c22f770430f4b2b2f8169), mined success |
+| ERC-8004 record points at the Render agent card | [0xa35ebc3fe3bea5669ac6b5d40cec918f2b2dd6e88c9a3837b8caa5b9261bbe3a](https://bscscan.com/tx/0xa35ebc3fe3bea5669ac6b5d40cec918f2b2dd6e88c9a3837b8caa5b9261bbe3a); `docs/AGENT_STUDIO.md` |
+| Live counters | `data/live/summary.json`, `/api/live` |
+| Proposed orders (not placed) | `docs/PROPOSED_ORDERS.md` |
+

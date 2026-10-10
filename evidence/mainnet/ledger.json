@@ -41,6 +41,17 @@
       "tx": "0xf4e2bdf75d643db18396e740eb2354b79cd73348f1f217f4c3c8e08c2c6d4b45",
       "orderId": "7",
       "note": "Standing buy placed from the Agentic Wallet (preview then execute), filled by the keeper."
+    },
+    {
+      "kind": "agentic-pay",
+      "tx": "0x4440411834a87b42a0631fb7354845bbb59b629f8e245e4be9ebd700db196081",
+      "note": "The Agentic Wallet paid for a certificate over x402: baw preview, sign, replay. USDT by permit2-exact, 0.01, settled through B402."
+    },
+    {
+      "kind": "agentic-cancel",
+      "tx": "0x32bd1fa6c02131300b9d08a13aa61bc475e97a4fa999cc9dcd2d9465952ce877",
+      "orderId": "8",
+      "note": "An order placed and cancelled from the Agentic Wallet through baw contract-call preview then execute."
     }
   ]
 }

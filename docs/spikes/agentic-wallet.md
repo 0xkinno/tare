@@ -36,3 +36,22 @@ prescribes (`contract-call preview`, read the parsed result, then `execute`):
   say "place standing buy".
 - The skill's rule that an order id is not a completed swap held: `execute` returned `BROADCASTED` with an `orderId`
   and a `txHash`, and the order was confirmed on-chain afterwards.
+
+## Second run: a cancel and an x402 payment
+
+Both ran through `baw` only, previews first.
+
+| Step | Result |
+|---|---|
+| `contract-call preview` and `execute`: `USDT.approve(TareBook, $0.05)` | preview parsed as `Approve`, simulation code `000000000`; tx `0x093617b8b814a8d869573a5ec04987e04c398b43319ed58fd005aca7c52ce5dd` |
+| `placeBuy` with a one-share floor, so it cannot fill | order 8; tx `0x7e8b9b50c2e3a7fda597b1edf3887cedfaa7c9f7f0848d60e588cadb3d034681` |
+| `cancel(8)` | on-chain status 2; tx `0x32bd1fa6c02131300b9d08a13aa61bc475e97a4fa999cc9dcd2d9465952ce877` |
+| `x402-payment preview` of the certificate 402 | option 1 USDT `permit2` READY_TO_SIGN with `needApproveFirst: true`; option 2 U `eip3009` ACTION_REQUIRED (no U balance) |
+| `x402-payment sign --selectedIndex 1`, replayed with `PAYMENT-SIGNATURE` | Permit2 approve `0xad527fc2785b4fb847f6f94a5d8a239bef99ce9ecf67c13efc78597ba696a229`, settlement `0x4440411834a87b42a0631fb7354845bbb59b629f8e245e4be9ebd700db196081`, certificate returned with its sha256 |
+
+Findings:
+
+- The skill's x402 reference matched the CLI exactly. The 402 body worked as `--paymentRequirements` without edits.
+- A `permit2` option needs an approve; `sign` dispatched it itself and the BSC gas was sponsored, so a wallet holding only USDT could pay.
+- The merchant must compare the replayed `accepted` entry without relying on key order: the wallet re-serialises it. The certificate route now compares canonical JSON.
+- The payment cost 0.01 USDT and no BNB.

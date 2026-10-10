@@ -98,3 +98,36 @@ Times below are approximate to the minute, reconstructed from file timestamps an
   under `/api/agent-card` with a rewrite from the well-known path.
 - 06:45Z. Server render of the wallet SDK threw `indexedDB is not defined` and, on one route, turned into a 500.
   Connectors are now created on the client only.
+
+## Second round (2026-10-10, evening)
+
+- 20:10Z. `GET pre-transaction/gas-price` and `POST gas-limit` answered `401` with `code 40103 Timestamp outside
+  recv_window` and a `serverTime` in the message. Over the VPN a round trip is 3 to 6 seconds, so a request signed
+  before it left can be outside the window by the time it lands. The client now retries with a fresh timestamp.
+- 20:12Z. `simulate` and `gas-limit` both returned `40001 Parameter error` for `evmTx: { from, to, data }`. The
+  field that was missing was `value`. The keeper's simulation had therefore never used the Transaction API: it fell
+  back to `eth_call` and the journal said so, which is the only reason it was noticed.
+- 20:13Z. A reverting call to `gas-limit` comes back as `code 40435` with the revert data as a JSON string inside
+  `msg` (`execution reverted: 0x30cd7471`). A successful call returns `{ gasLimit, energyRequired, ... }` with the
+  Tron fields null.
+- 20:15Z. `portfolio/token/latest-pnl` takes `walletAddress`, not `address` as the balance endpoints do. It returns
+  an average buy price per token and zeros (with `isPnlSupported: true`) for a token the wallet never held.
+- 20:16Z. `market/token/top-liquidity` returns pools and protocols for NVDAB, but `liquidityUsd` is null for every
+  pool and `protocolName` is null for some.
+- 20:18Z. `transaction-detail-by-txhash` returned the keeper fill with `txStatus: success`, gas used and fee; the
+  data array is empty until the index catches up, so "not indexed yet" is a state, not an error.
+- 20:20Z. Yahoo Finance chart answered `429` after a handful of calls from one IP; the Nasdaq quote endpoint kept
+  answering. From the Render host the Yahoo path worked (65 reference checks, all answered).
+- 20:40Z. `baw x402-payment preview` accepted the 402 body as it was. A `permit2` option reports
+  `needApproveFirst: true`; `sign` sent the approve itself and BSC gas was sponsored.
+- 20:44Z. The replayed `accepted` entry came back with a different key order than the merchant wrote, so a string
+  comparison failed in testing. Comparing canonical JSON fixed it.
+- 20:50Z. `npm view bag` is an unrelated package. The Agent Studio binary is `bag` inside `@bnbagent/studio-cli`, so
+  `npx bag` runs the wrong thing; `npx -p @bnbagent/studio-cli bag` is correct.
+- 21:13Z. `bag erc8004 update-endpoint` logs an audit line with `status: submitted` and `tx_hash: null`; the hash is
+  recoverable from the registry log, and `bag erc8004 resolve` showed the new A2A endpoint within a block.
+- 21:18Z. `broadcast-transaction` accepted a locally signed contract call (USDT approve of zero) and returned a
+  `txHash` and an `orderId`; the docs show only a swap example.
+- 21:30Z. A repo rule `reference/` in `.gitignore` also matched `packages/reference`, so a new package was silently
+  left out of a commit and the Render build would have failed. The rule is anchored now (`/reference/`).
+

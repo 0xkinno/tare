@@ -11,6 +11,9 @@ importers:
       '@tare/binance':
         specifier: workspace:*
         version: link:packages/binance
+      '@tare/independent':
+        specifier: workspace:*
+        version: link:packages/independent
       '@tare/kernel':
         specifier: workspace:*
         version: link:packages/kernel

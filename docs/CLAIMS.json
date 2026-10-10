@@ -206,6 +206,49 @@
         ".github/workflows/keepalive.yml"
       ],
       "limitations": "Free plan; kept awake by a self-ping and a scheduled workflow. The mainnet autonomy run (C11) predates the hosted deployment."
+    },
+    {
+      "id": "C20",
+      "claim": "The Binance Agentic Wallet paid for a Tare certificate over x402 on BSC mainnet (USDT by permit2-exact).",
+      "status": "SUPPORTED",
+      "reproduce": "curl /api/certificate?ticker=NVDA, baw x402-payment preview then sign --selectedIndex, replay with PAYMENT-SIGNATURE",
+      "evidence": [
+        "evidence/mainnet/agentic_payment.json",
+        "logs/baw_x402_preview.json"
+      ],
+      "limitations": "Pay-to is the owner wallet from B402 onboarding, so the keeper does not earn from it. 0.01 USDT."
+    },
+    {
+      "id": "C21",
+      "claim": "An order was placed and cancelled from the Agentic Wallet through baw contract-call preview then execute.",
+      "status": "SUPPORTED",
+      "reproduce": "scripts/mainnet/agentic_calls.ts prints the calldata; baw contract-call preview then execute for approve, placeBuy, cancel",
+      "evidence": [
+        "evidence/mainnet/agentic_cancel.json"
+      ],
+      "limitations": "Five cents; the floor was deliberately unreachable."
+    },
+    {
+      "id": "C22",
+      "claim": "An independent equity reference is shown with source and timestamp, and a gap above the configured bps refuses with REFERENCE_DISAGREE (keeper, planner).",
+      "status": "SUPPORTED",
+      "reproduce": "pnpm --filter @tare/independent test; pnpm --filter @tare/keeper test; curl /api/ticker/NVDA | jq .independent",
+      "evidence": [
+        "packages/independent/test/reference.test.ts",
+        "services/keeper/test/keeper.test.ts",
+        "packages/kernel/test/kernel.test.ts"
+      ],
+      "limitations": "Yahoo chart and Nasdaq quote are public endpoints without a service level; both failing makes the keeper wait (fail closed)."
+    },
+    {
+      "id": "C23",
+      "claim": "The keeper and planner use five more Binance API endpoints, each answered on mainnet data: gas-limit, transaction-detail-by-txhash, top-liquidity, address portfolio and broadcast (which accepted a contract call).",
+      "status": "SUPPORTED",
+      "reproduce": "scripts/discovery/e13_api_depth.ts",
+      "evidence": [
+        "data/discovery/e13_api_depth.json"
+      ],
+      "limitations": "top-liquidity returns pools and venues but liquidityUsd is null for these tokens; the portfolio average buy price is per token, so cost basis per share divides by the unit."
     }
   ]
 }
