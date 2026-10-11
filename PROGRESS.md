@@ -25,7 +25,7 @@ Author: 0xkinno.
 - ERC-8183 job settlement: seven day dispute window; state is Submitted.
 - Keeper hosting: runs on Render (Singapore, free plan) with a self-ping and a scheduled keepalive workflow; the web app reads its live status.
 - Supabase tables: apply `services/keeper/schema.sql` in the project SQL editor so the recorder can write.
-- Demo video: the author's.
+- Demo video: https://youtu.be/mghSQgCVnVo?si=dZ-BasdhM_vbtvNX
 
 ### Blockers
 None that stop the build. The items above need an account action by the owner.

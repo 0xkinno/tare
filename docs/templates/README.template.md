@@ -23,6 +23,7 @@
 <p align="center">
   <a href="{{origin}}"><b>Open the app</b></a> ·
   <a href="{{origin}}/judge"><b>Judge path (2 minutes, no wallet)</b></a> ·
+  <a href="https://youtu.be/mghSQgCVnVo?si=dZ-BasdhM_vbtvNX"><b>Demo video</b></a> ·
   <a href="{{origin}}/proof">Proof</a> ·
   <a href="DX_REPORT.md">Developer experience report</a> ·
   <a href="DISCOVERY.md">Discovery</a> ·
@@ -37,6 +38,7 @@
 
 ## Try it in a minute
 
+0. **Watch the [demo video](https://youtu.be/mghSQgCVnVo?si=dZ-BasdhM_vbtvNX).** Three minutes, with the live app and the mainnet records.
 1. **Open [the judge path]({{origin}}/judge).** No wallet. A live shelf, then every retained mainnet transaction, each with its BscScan link and a verifier button.
 2. **Open a ticker, for example [NVDA]({{origin}}/app/t/NVDA).** Three wrappers weighed in shares, the session, the chart, and what a dollar buys in each.
 3. **Connect a wallet and choose *Standing buy*.** Say how many dollars and how far over the real price you will go. You sign one approval and one order.
